@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.marquee-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.marquee-content {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 80s linear infinite;
+  direction: ltr;
+}
+
+.marquee-content2 {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 80s linear infinite;
+  animation-delay: -40s;
+  direction: ltr;
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: max-content;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Dark mode styles */
+.dark {
+  color-scheme: dark;
+}
+
+/* تحسينات الوضع المظلم */
+.dark body {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #f3f4f6;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #3b82f6;
+  ring-color: #3b82f6;
+}
