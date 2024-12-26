@@ -61,3 +61,25 @@
   border-color: #3b82f6;
   ring-color: #3b82f6;
 }
+
+/* إعدادات الطباعة */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #certificate-container {
+    display: block !important;
+    width: 297mm;
+    height: 210mm;
+    margin: 0;
+    padding: 0;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

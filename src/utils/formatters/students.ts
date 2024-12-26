@@ -9,6 +9,7 @@ export function formatStudents(rows: any[]): Student[] {
     violations: row[4]?.toString() || '',
     parts: row[5]?.toString() || '',
     points: parseInt(row[6]?.toString() || '0'),
-    phone: row[7]?.toString() || ''
+    phone: row[7]?.toString() || '',
+    currentLevel: row[5]?.toString() || '' // العمود F هو السادس (index 5)
   }));
 }

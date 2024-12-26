@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X } from '../icons';
+import React, { useState, useRef } from 'react';
 import type { Student } from '../../types/student';
 import { useThemeStore } from '../../store/themeStore';
-import { Modal } from '../Modal';
 import { StudentCard } from './StudentCard';
+import { CertificateCard } from '../certificates/CertificateCard';
+import html2canvas from 'html2canvas';
 
 interface StudentDetailsModalProps {
   student: Student;
@@ -16,151 +16,200 @@ interface StudentDetailsModalProps {
 export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen }: StudentDetailsModalProps) {
   const { isDark } = useThemeStore();
   const [showCard, setShowCard] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = async () => {
+    if (!certificateRef.current) return;
+    
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: 'white',
+      });
+      
+      const image = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.download = `شهادة-شكر-${student.studentName}.png`;
+      link.href = image;
+      link.click();
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
+  const modalClasses = `fixed inset-0 z-50 flex items-center justify-center p-4 ${
+    isDark ? 'bg-gray-900/75' : 'bg-black/75'
+  }`;
+
   return (
-    <Modal onClose={onClose}>
-      <div className={`fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center ${isOpen ? '' : 'hidden'}`}>
-        <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6 relative`}>
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <>
+      <div className={modalClasses} onClick={onClose}>
+        <div
+          className={`w-full max-w-2xl rounded-2xl p-6 shadow-xl transition-all ${
+            isDark ? 'bg-gray-800 text-white' : 'bg-white'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative">
+            <button
+              onClick={onClose}
+              className={`absolute left-0 top-0 p-2 rounded-full transition-colors ${
+                isDark
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
 
-          {!showCard ? (
-            <>
-              <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                تفاصيل الطالب
-              </h2>
+            {!showCard && !showCertificate ? (
+              <div className="bg-[#1e2530] text-white p-6 rounded-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">تفاصيل الطالب</h2>
+                </div>
 
-              {/* رأس النافذة مع معلومات الطالب الرئيسية */}
-              <div className={`p-6 ${isDark ? 'bg-gray-700' : 'bg-blue-500'} text-white`}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">{student.studentName}</h2>
-                    <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                      <span className="bg-white/20 px-3 py-1 rounded-full text-sm">
-                        الرقم: {student.id}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        student.points >= 80 ? 'bg-green-500' :
-                        student.points >= 50 ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`}>
+                <div className="bg-[#262f3d] p-6 rounded-lg mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-xl font-bold">{student.studentName}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
                         {student.points} نقطة
+                      </span>
+                      <span className="text-gray-400 text-sm">
+                        {student.id}
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 mb-6">
+                  <div className="bg-[#262f3d] p-6 rounded-lg">
+                    <div className="flex justify-between">
+                      <div>
+                        <div className="text-gray-400 mb-2">المستوى الحالي:</div>
+                        <div className="text-xl font-bold">
+                          {student.parts}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400 mb-2">الحلقة الحالية:</div>
+                        <div className="text-xl font-bold">{student.level}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-blue-500/10 p-4 rounded-lg">
+                      <h4 className="text-blue-400 text-sm mb-1">رقم الهاتف</h4>
+                      <p className="text-lg font-bold dir-ltr text-left text-blue-500" style={{ wordBreak: 'break-all' }}>{student.phone}</p>
+                    </div>
+
+                    <div className="bg-red-500/10 p-4 rounded-lg">
+                      <h4 className="text-red-400 text-sm mb-1">المخالفات</h4>
+                      <p className="text-lg font-bold text-red-500">لا توجد مخالفات</p>
+                    </div>
+
+                    <div className="bg-green-500/10 p-4 rounded-lg">
+                      <h4 className="text-green-400 text-sm mb-1">النقاط</h4>
+                      <p className="text-2xl font-bold text-green-500">{student.points}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
                   <button
-                    onClick={onClose}
-                    className="text-white/80 hover:text-white transition-colors"
+                    onClick={() => setShowCard(true)}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    <X size={24} />
+                    طباعة البطاقة
+                  </button>
+                  <button
+                    onClick={() => setShowCertificate(true)}
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    شهادة شكر
+                  </button>
+                  <button
+                    onClick={() => onEdit(student)}
+                    className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    onClick={() => onDelete(student)}
+                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    حذف
                   </button>
                 </div>
               </div>
-
-              {/* محتوى النافذة */}
-              <div className="p-6">
-                {/* معلومات الحلقة والمستوى */}
-                <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 rounded-lg ${
-                  isDark ? 'bg-gray-700/50' : 'bg-gray-50'
-                }`}>
-                  <div>
-                    <h3 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'} mb-2`}>
-                      معلومات الحلقة
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm opacity-75">الحلقة:</label>
-                        <p className="text-lg font-medium">{student.level}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm opacity-75">رقم الحلقة:</label>
-                        <p className="text-lg font-medium">{student.classNumber}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'} mb-2`}>
-                      المستوى الدراسي
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm opacity-75">المستوى الحالي:</label>
-                        <p className="text-lg font-medium">{student.parts}</p>
-                      </div>
-                    </div>
-                  </div>
+            ) : showCard ? (
+              <>
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => setShowCard(false)}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      isDark
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    رجوع
+                  </button>
                 </div>
-
-                {/* الإحصائيات */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                  <div className={`p-4 rounded-lg ${isDark ? 'bg-green-500/10' : 'bg-green-50'}`}>
-                    <span className={`text-sm ${isDark ? 'text-green-300' : 'text-green-600'}`}>النقاط</span>
-                    <p className={`text-2xl font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                      {student.points}
-                    </p>
-                  </div>
-                  <div className={`p-4 rounded-lg ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
-                    <span className={`text-sm ${isDark ? 'text-red-300' : 'text-red-600'}`}>المخالفات</span>
-                    <p className={`text-2xl font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                      {student.violations}
-                    </p>
-                  </div>
-                  <div className={`p-4 rounded-lg ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'} md:col-span-1 col-span-2`}>
-                    <span className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>رقم الهاتف</span>
-                    <p className={`text-lg font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                      {student.phone || 'غير متوفر'}
-                    </p>
-                  </div>
+                <StudentCard student={student} />
+              </>
+            ) : (
+              <>
+                <div className="flex justify-end mb-4 gap-2">
+                  <button
+                    onClick={() => setShowCertificate(false)}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      isDark
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    رجوع
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      isDownloading
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-amber-600 hover:bg-amber-700 text-white'
+                    }`}
+                  >
+                    {isDownloading ? 'جاري التنزيل...' : 'تنزيل الشهادة'}
+                  </button>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-2 space-x-reverse mt-6">
-                <button
-                  onClick={() => setShowCard(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  طباعة البطاقة
-                </button>
-                <button
-                  onClick={() => onEdit(student)}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-                >
-                  تعديل
-                </button>
-                <button
-                  onClick={() => onDelete(student)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  حذف
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => setShowCard(false)}
-                className="mb-4 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 flex items-center"
-              >
-                <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                العودة للتفاصيل
-              </button>
-              <StudentCard student={student} />
-            </>
-          )}
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                  <CertificateCard ref={certificateRef} student={student} />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </Modal>
+    </>
   );
 }
