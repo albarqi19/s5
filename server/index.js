@@ -8,6 +8,7 @@ import recordsRouter from './routes/records.js';
 console.log('=== Starting Server ===');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // Basic middleware
 app.use(cors());
@@ -50,7 +51,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n=== Server running on port ${PORT} ===`);
   console.log('Available routes:');
