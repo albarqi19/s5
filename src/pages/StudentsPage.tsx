@@ -4,9 +4,11 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { AddStudentModal } from '../components/students/AddStudentModal';
 import { EditStudentModal } from '../components/students/EditStudentModal';
 import { StudentDetailsModal } from '../components/students/StudentDetailsModal';
+import { DeleteConfirmationModal } from '../components/common/DeleteConfirmationModal';
 import { useThemeStore } from '../store/themeStore';
 import axios from 'axios';
 import { SERVER_CONFIG } from '../config/server';
+import { Toast } from '../components/common/Toast';
 
 interface Student {
   id: string;
@@ -30,6 +32,8 @@ export function StudentsPage() {
   const [partsFilter, setPartsFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // الحلقات المتاحة
   const circles = [
@@ -68,15 +72,43 @@ export function StudentsPage() {
   };
 
   const handleDelete = async (student: Student) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الطالب؟')) {
-      try {
-        await axios.delete(`${SERVER_CONFIG.baseUrl}/api/students/${student.id}`);
-        await fetchStudents();
-        setSelectedStudent(null);
-      } catch (err) {
-        console.error('Error deleting student:', err);
-        setError('فشل في حذف الطالب');
-      }
+    setSelectedStudent(null); // إغلاق مربع التفاصيل
+    setStudentToDelete(student);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+    
+    try {
+      await axios.delete(`${SERVER_CONFIG.baseUrl}/api/students/${studentToDelete.id}`);
+      setStudents(students.filter(s => s.id !== studentToDelete.id));
+      setToast({ message: `تم حذف الطالب ${studentToDelete.studentName} بنجاح`, type: 'success' });
+    } catch (err) {
+      setToast({ message: 'حدث خطأ أثناء حذف الطالب', type: 'error' });
+    }
+    setStudentToDelete(null);
+  };
+
+  const handleAddStudent = async (studentData: Omit<Student, 'id'>) => {
+    try {
+      const response = await axios.post(`${SERVER_CONFIG.baseUrl}/api/students`, studentData);
+      await fetchStudents();
+      setShowAddModal(false);
+      setToast({ message: `تم إضافة الطالب ${studentData.studentName} بنجاح`, type: 'success' });
+    } catch (err) {
+      setToast({ message: 'حدث خطأ أثناء إضافة الطالب', type: 'error' });
+    }
+  };
+
+  const handleEditStudent = async (studentData: Student) => {
+    try {
+      await axios.put(`${SERVER_CONFIG.baseUrl}/api/students/${studentData.id}`, studentData);
+      await fetchStudents();
+      setStudentToEdit(null);
+      setSelectedStudent(null);
+      setToast({ message: `تم تحديث بيانات الطالب ${studentData.studentName} بنجاح`, type: 'success' });
+    } catch (err) {
+      setToast({ message: 'حدث خطأ أثناء تحديث بيانات الطالب', type: 'error' });
     }
   };
 
@@ -264,7 +296,7 @@ export function StudentsPage() {
           <AddStudentModal
             isOpen={showAddModal}
             onClose={() => setShowAddModal(false)}
-            onSuccess={handleAddSuccess}
+            onSuccess={handleAddStudent}
           />
         )}
         {studentToEdit && (
@@ -272,7 +304,7 @@ export function StudentsPage() {
             isOpen={!!studentToEdit}
             student={studentToEdit}
             onClose={() => setStudentToEdit(null)}
-            onSuccess={handleEditSuccess}
+            onSuccess={handleEditStudent}
           />
         )}
         {selectedStudent && (
@@ -285,6 +317,21 @@ export function StudentsPage() {
               setSelectedStudent(null);
             }}
             onDelete={() => handleDelete(selectedStudent)}
+          />
+        )}
+        <DeleteConfirmationModal
+          isOpen={!!studentToDelete}
+          onClose={() => setStudentToDelete(null)}
+          onConfirm={confirmDelete}
+          itemName={studentToDelete ? `الطالب ${studentToDelete.studentName}` : ''}
+        />
+
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
           />
         )}
       </div>
