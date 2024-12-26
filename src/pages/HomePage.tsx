@@ -3,7 +3,7 @@ import { useApi } from '../hooks/api/useApi';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import type { Student } from '../types/student';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Users, ClipboardList, GraduationCap } from '../components/icons';
+import { Users, ClipboardList, GraduationCap, Plus, AlertTriangle } from '../components/icons';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PageLayout } from '../components/layout/PageLayout';
 import { DashboardCard } from '../components/home/DashboardCard';
@@ -103,7 +103,7 @@ export function HomePage() {
         </div>
 
         {/* Main Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <DashboardCard
             to="/students"
             icon={
@@ -157,6 +157,63 @@ export function HomePage() {
                 : 'bg-white hover:shadow-lg hover:bg-violet-50/30'
             }`}
           />
+        </div>
+
+        {/* Additional Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <a 
+            href="https://www.appsheet.com/start/d2527eab-ea7a-4fc7-89af-170b71cd850d#appName=%D8%A7%D8%AF%D8%A7%D8%B1%D8%A9%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-976645-24-12-26&row=&table=Record+Data&view=%D8%A7%D8%B6%D8%A7%D9%81%D8%A9+%D8%A7%D9%84%D9%86%D9%82%D8%A7%D8%B7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block p-6 rounded-2xl transition-all duration-300 group overflow-hidden relative transform hover:-translate-y-1 ${
+              isDark 
+                ? 'bg-gray-800/50 hover:bg-gray-800' 
+                : 'bg-white hover:shadow-lg hover:bg-amber-50/30'
+            }`}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/10 ${
+                isDark ? 'text-amber-400' : 'text-amber-600'
+              }`}>
+                <Plus className="w-10 h-10" />
+              </div>
+              <div className="mt-6">
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  اضافة نقاط
+                </h3>
+                <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                  إضافة نقاط جديدة للطلاب
+                </p>
+              </div>
+            </div>
+          </a>
+
+          <a 
+            href="https://www.appsheet.com/start/d2527eab-ea7a-4fc7-89af-170b71cd850d#appName=%D8%A7%D8%AF%D8%A7%D8%B1%D8%A9%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-976645-24-12-26&group=%5B%5D&sort=%5B%5D&table=%D8%A7%D9%84%D9%85%D8%AE%D8%A7%D9%84%D9%81%D8%A7%D8%AA&view=%D8%A7%D9%84%D9%85%D8%AE%D8%A7%D9%84%D9%81%D8%A7%D8%AA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block p-6 rounded-2xl transition-all duration-300 group overflow-hidden relative transform hover:-translate-y-1 ${
+              isDark 
+                ? 'bg-gray-800/50 hover:bg-gray-800' 
+                : 'bg-white hover:shadow-lg hover:bg-red-50/30'
+            }`}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/10 ${
+                isDark ? 'text-red-400' : 'text-red-600'
+              }`}>
+                <AlertTriangle className="w-10 h-10" />
+              </div>
+              <div className="mt-6">
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  اضافة مخالفات
+                </h3>
+                <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                  تسجيل المخالفات للطلاب
+                </p>
+              </div>
+            </div>
+          </a>
         </div>
       </div>
     </PageLayout>
