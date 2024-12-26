@@ -43,6 +43,83 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
     }
   };
 
+  const handleSendToWhatsApp = async () => {
+    if (!certificateRef.current) return;
+    
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: 'white',
+      });
+      
+      const base64Image = canvas.toDataURL('image/png', 1.0);
+      
+      // تنسيق رقم الهاتف للواتساب
+      const formatPhoneForWhatsApp = (phone: string) => {
+        // إزالة أي رموز غير رقمية
+        const cleanNumber = phone.replace(/\D/g, '');
+        // إضافة رمز الدولة إذا لم يكن موجوداً
+        return cleanNumber.startsWith('966') ? cleanNumber : `966${cleanNumber.startsWith('0') ? cleanNumber.slice(1) : cleanNumber}`;
+      };
+
+      // إرسال البيانات إلى Zapier webhook
+      const response = await fetch('https://hooks.zapier.com/hooks/catch/21024704/288k618/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: formatPhoneForWhatsApp(student.phone),
+          studentName: student.studentName,
+          certificate: base64Image,
+          message: `مرحباً ${student.studentName}،\nنرفق لكم شهادة الشكر والتقدير 🎉`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('فشل في إرسال الشهادة');
+      }
+
+      alert('تم إرسال الشهادة بنجاح!');
+    } catch (error) {
+      console.error('Error sending certificate:', error);
+      alert('حدث خطأ أثناء إرسال الشهادة');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // إرسال طلب تجريبي لرؤية البيانات في Zapier
+  const sendTestData = async () => {
+    try {
+      const response = await fetch('https://hooks.zapier.com/hooks/catch/21024704/288k618/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: "966500000000",
+          studentName: "طالب تجريبي",
+          certificate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          message: "هذا اختبار للتأكد من ظهور البيانات في Zapier"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('فشل في إرسال البيانات التجريبية');
+      }
+
+      console.log('تم إرسال البيانات التجريبية بنجاح');
+    } catch (error) {
+      console.error('Error sending test data:', error);
+    }
+  };
+
+  // يمكنك استدعاء هذه الدالة في console المتصفح:
+  // window.sendTestData = sendTestData;
+
   if (!isOpen) return null;
 
   const modalClasses = `fixed inset-0 z-50 flex items-center justify-center p-4 ${
@@ -200,6 +277,17 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
                     }`}
                   >
                     {isDownloading ? 'جاري التنزيل...' : 'تنزيل الشهادة'}
+                  </button>
+                  <button
+                    onClick={handleSendToWhatsApp}
+                    disabled={isDownloading}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      isDownloading
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {isDownloading ? 'جاري الإرسال...' : 'إرسال للواتساب'}
                   </button>
                 </div>
                 <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
