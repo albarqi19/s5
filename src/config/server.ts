@@ -1,6 +1,6 @@
 const getBaseUrl = () => {
   if (import.meta.env.PROD) {
-    return 'https://your-app-name.onrender.com';
+    return 'https://s5-rbx7.onrender.com';
   }
   return 'http://localhost:5000';
 };
