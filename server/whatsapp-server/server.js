@@ -18,8 +18,8 @@ app.use(cors({
 app.options('*', cors());
 
 // زيادة حد حجم الطلب
-app.use(bodyParser.json({limit: '100mb'}));
-app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
+app.use(express.json({limit: '100mb'}));
+app.use(express.urlencoded({limit: '100mb', extended: true}));
 
 let lastQR = '';
 
@@ -56,10 +56,16 @@ app.get('/qr', (req, res) => {
 app.post('/send-certificate', cors(), async (req, res) => {
     console.log('=== Received certificate request ===');
     console.log('Request headers:', req.headers);
-    console.log('Full request body:', req.body);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     try {
+        if (!req.body || typeof req.body !== 'object') {
+            console.error('Invalid request body:', req.body);
+            return res.status(400).json({ error: 'Invalid request body' });
+        }
+
         const { phoneNumber, imageData } = req.body;
+        
         console.log('Extracted data:', {
             phoneNumberExists: !!phoneNumber,
             phoneNumberType: typeof phoneNumber,
@@ -67,27 +73,26 @@ app.post('/send-certificate', cors(), async (req, res) => {
             imageDataExists: !!imageData,
             imageDataLength: imageData?.length
         });
-        
+
         if (!phoneNumber || !imageData) {
-            console.error('Missing data:', { 
-                hasPhone: !!phoneNumber, 
-                hasImage: !!imageData,
-                phoneType: typeof phoneNumber,
-                imageType: typeof imageData
+            console.error('Missing required fields:', {
+                hasPhone: !!phoneNumber,
+                hasImage: !!imageData
             });
             return res.status(400).json({ error: 'Missing phone number or image data' });
         }
 
-        console.log('Processing phone number:', phoneNumber);
-        
-        // تحقق من أن phoneNumber موجود قبل استخدام replace
         if (typeof phoneNumber !== 'string') {
             console.error('Invalid phone number type:', typeof phoneNumber);
-            return res.status(400).json({ error: 'Invalid phone number format' });
+            return res.status(400).json({ error: 'Phone number must be a string' });
         }
 
-        let formattedNumber = phoneNumber.replace(/\D/g, '');
-        console.log('After first replace:', formattedNumber);
+        console.log('Processing phone number:', phoneNumber);
+        let formattedNumber = phoneNumber.trim();
+        console.log('After trim:', formattedNumber);
+        
+        formattedNumber = formattedNumber.replace(/\D/g, '');
+        console.log('After removing non-digits:', formattedNumber);
         
         if (formattedNumber.startsWith('966')) {
             formattedNumber = formattedNumber.substring(3);
@@ -97,21 +102,21 @@ app.post('/send-certificate', cors(), async (req, res) => {
             formattedNumber = formattedNumber.substring(1);
             console.log('After removing leading 0:', formattedNumber);
         }
+        
         const finalNumber = `966${formattedNumber}@c.us`;
-        
-        console.log('Formatted number:', finalNumber);
-        console.log('Image data length:', imageData.length);
-        
+        console.log('Final formatted number:', finalNumber);
+
+        console.log('Converting image data...');
         const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
         const media = new MessageMedia('image/png', base64Data, 'certificate.png');
 
-        console.log('Attempting to send WhatsApp message...');
-        
+        console.log('Checking WhatsApp client status...');
         if (!client.info) {
             console.error('WhatsApp client not ready');
             return res.status(500).json({ error: 'WhatsApp client not ready' });
         }
 
+        console.log('Sending WhatsApp message...');
         const message = await client.sendMessage(finalNumber, media, {
             caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
