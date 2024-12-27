@@ -4,6 +4,7 @@ import { useThemeStore } from '../../store/themeStore';
 import { StudentCard } from './StudentCard';
 import { CertificateCard } from '../certificates/CertificateCard';
 import html2canvas from 'html2canvas';
+import toast from 'react-hot-toast';
 
 interface StudentDetailsModalProps {
   student: Student;
@@ -44,18 +45,39 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
   };
 
   const handleSendToWhatsApp = async () => {
-    if (!certificateRef.current) return;
-    
-    setIsDownloading(true);
     try {
+      // التحقق من وجود رقم الهاتف
+      if (!student.phone) {
+        toast.error('رقم الهاتف غير متوفر');
+        return;
+      }
+
+      // التحقق من وجود المرجع للشهادة
+      if (!certificateRef.current) {
+        toast.error('خطأ في تحميل الشهادة');
+        return;
+      }
+
+      toast.loading('جاري إرسال الشهادة...', { id: 'sending' });
+
+      // تحويل العنصر إلى صورة
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         useCORS: true,
         backgroundColor: 'white',
+        removeContainer: true,
+        logging: false,
+        imageTimeout: 0,
+        onclone: (clonedDoc) => {
+          const bgElement = clonedDoc.querySelector('.certificate-bg');
+          if (bgElement) {
+            bgElement.style.backgroundImage = 'none';
+          }
+        }
       });
       
-      const base64Image = canvas.toDataURL('image/png', 1.0);
-      
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
       // تنسيق رقم الهاتف للواتساب
       const formatPhoneForWhatsApp = (phone: string) => {
         // إزالة أي رموز غير رقمية
@@ -64,17 +86,25 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         return cleanNumber.startsWith('966') ? cleanNumber : `966${cleanNumber.startsWith('0') ? cleanNumber.slice(1) : cleanNumber}`;
       };
 
-      // إرسال البيانات إلى Zapier webhook
-      const response = await fetch('https://hooks.zapier.com/hooks/catch/21024704/288k618/', {
+      // إعداد الرسالة
+      const message = `السلام عليكم ورحمة الله وبركاته
+شهادة شكر وتقدير للطالب: ${student.studentName}
+الحلقة: ${student.level}
+المستوى: ${student.parts}
+النقاط: ${student.points}
+
+بارك الله في جهودكم 🌸`;
+
+      // إرسال الشهادة عبر WhatsApp
+      const response = await fetch('http://localhost:3002/send-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           phone: formatPhoneForWhatsApp(student.phone),
-          studentName: student.studentName,
-          certificate: base64Image,
-          message: `مرحباً ${student.studentName}،\nنرفق لكم شهادة الشكر والتقدير 🎉`
+          image: imageData,
+          message
         }),
       });
 
@@ -82,12 +112,10 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         throw new Error('فشل في إرسال الشهادة');
       }
 
-      alert('تم إرسال الشهادة بنجاح!');
+      toast.success('تم إرسال الشهادة بنجاح!', { id: 'sending' });
     } catch (error) {
       console.error('Error sending certificate:', error);
-      alert('حدث خطأ أثناء إرسال الشهادة');
-    } finally {
-      setIsDownloading(false);
+      toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
     }
   };
 
