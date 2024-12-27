@@ -56,8 +56,8 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         scale: 2,
         useCORS: true,
         backgroundColor: 'white',
-        width: type === 'card' ? 600 : elementRef.current.offsetWidth, 
-        height: type === 'card' ? 400 : elementRef.current.offsetHeight 
+        width: type === 'card' ? 437 : elementRef.current.offsetWidth, 
+        height: type === 'card' ? 425 : elementRef.current.offsetHeight 
       });
 
       const imageData = canvas.toDataURL('image/png');
