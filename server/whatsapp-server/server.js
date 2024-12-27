@@ -5,21 +5,19 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// إعدادات CORS المحدثة
-app.use((req, res, next) => {
-    console.log('Incoming request:', req.method, req.path);
-    console.log('Request headers:', req.headers);
-    
-    res.header('Access-Control-Allow-Origin', 'https://s5-kappa.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
+// تكوين CORS
+const corsOptions = {
+    origin: 'https://s5-kappa.vercel.app',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning'],
+    optionsSuccessStatus: 200
+};
 
-    if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request');
-        return res.status(200).end();
-    }
-    next();
-});
+// استخدام CORS middleware
+app.use(cors(corsOptions));
+
+// معالجة خاصة لطلبات OPTIONS
+app.options('*', cors(corsOptions));
 
 // زيادة حد حجم الطلب
 app.use(bodyParser.json({limit: '100mb'}));
@@ -57,7 +55,7 @@ app.get('/qr', (req, res) => {
     res.send(lastQR);
 });
 
-app.post('/send-certificate', async (req, res) => {
+app.post('/send-certificate', cors(corsOptions), async (req, res) => {
     console.log('=== Received certificate request ===');
     console.log('Request headers:', req.headers);
     console.log('Request body keys:', Object.keys(req.body));
@@ -94,7 +92,6 @@ app.post('/send-certificate', async (req, res) => {
 
         console.log('Attempting to send WhatsApp message...');
         
-        // تحقق من حالة العميل
         if (!client.info) {
             console.error('WhatsApp client not ready');
             return res.status(500).json({ error: 'WhatsApp client not ready' });
