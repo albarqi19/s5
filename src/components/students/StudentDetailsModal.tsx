@@ -44,23 +44,13 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
     }
   };
 
-  const handleSendToWhatsApp = async () => {
+  const sendCertificateToWhatsApp = async () => {
+    if (!student?.phone || !certificateRef.current) {
+      toast.error('رقم الهاتف أو صورة الشهادة غير متوفرة');
+      return;
+    }
+
     try {
-      // التحقق من وجود رقم الهاتف
-      if (!student.phone) {
-        toast.error('رقم الهاتف غير متوفر');
-        return;
-      }
-
-      // التحقق من وجود المرجع للشهادة
-      if (!certificateRef.current) {
-        toast.error('خطأ في تحميل الشهادة');
-        return;
-      }
-
-      toast.loading('جاري إرسال الشهادة...', { id: 'sending' });
-
-      // تحويل الشهادة إلى صورة
       const certificateElement = certificateRef.current;
       if (!certificateElement) return;
 
@@ -70,70 +60,29 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         logging: true,
       });
 
-      const dataUrl = canvas.toDataURL('image/png');
-      console.log('Phone number being sent:', student.phone);
-      console.log('Image data length:', dataUrl.length);
+      const certificateImageData = canvas.toDataURL('image/png');
 
-      try {
-        console.log('Preparing to send certificate...');
-        
-        if (!student?.phone) {
-          console.error('No phone number available');
-          toast.error('رقم الهاتف غير متوفر');
-          return;
-        }
+      const response = await fetch('http://164.92.246.226:3002/send-certificate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: student.phone,
+          imageData: certificateImageData
+        })
+      });
 
-        // تنسيق رقم الهاتف
-        let phoneNumber = student.phone.toString().trim();
-        if (!phoneNumber.startsWith('966')) {
-          phoneNumber = `966${phoneNumber.replace(/^0+/, '')}`;
-        }
-        console.log('Phone number after formatting:', phoneNumber);
-
-        // التحقق من البيانات قبل الإرسال
-        console.log('Image data validation:', {
-          type: typeof dataUrl,
-          length: dataUrl.length,
-          startsWith: dataUrl.substring(0, 30),
-          isBase64: dataUrl.includes('base64')
-        });
-
-        const requestData = {
-          phoneNumber,
-          imageData: dataUrl
-        };
-
-        console.log('Full request data:', {
-          phoneNumber: requestData.phoneNumber,
-          imageDataLength: requestData.imageData.length,
-          imageDataStart: requestData.imageData.substring(0, 50)
-        });
-
-        const response = await fetch('https://5db8-51-36-170-105.ngrok-free.app/send-certificate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
-          },
-          body: JSON.stringify(requestData)
-        });
-
-        console.log('Response status:', response.status);
-        const responseData = await response.json();
-        console.log('Response data:', responseData);
-
-        if (!response.ok) {
-          throw new Error(responseData.error || 'Failed to send certificate');
-        }
-
-        toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
-      } catch (error) {
-        console.error('Error sending certificate:', error);
-        toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('تم إرسال الشهادة بنجاح عبر واتساب');
+      } else {
+        throw new Error(data.error || 'فشل في إرسال الشهادة');
       }
     } catch (error) {
       console.error('Error sending certificate:', error);
-      toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
+      toast.error('حدث خطأ أثناء إرسال الشهادة: ' + error.message);
     }
   };
 
@@ -325,7 +274,7 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
                     {isDownloading ? 'جاري التنزيل...' : 'تنزيل الشهادة'}
                   </button>
                   <button
-                    onClick={handleSendToWhatsApp}
+                    onClick={sendCertificateToWhatsApp}
                     disabled={isDownloading}
                     className={`px-4 py-2 rounded-lg transition-colors ${
                       isDownloading

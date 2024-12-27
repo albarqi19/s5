@@ -1,12 +1,14 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const fs = require('fs');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '100mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 let lastQR = '';
 
@@ -18,34 +20,119 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
-    lastQR = qr;
-    console.log('\n\n=========================');
-    console.log('Scan this QR code in WhatsApp:');
-    console.log('=========================\n\n');
-    qrcode.generate(qr, { small: true });
+// إنشاء مجلد public إذا لم يكن موجوداً
+if (!fs.existsSync(path.join(__dirname, 'public'))) {
+    fs.mkdirSync(path.join(__dirname, 'public'));
+}
+
+// إنشاء صفحة HTML
+const htmlContent = `
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #qrcode {
+            margin: 20px 0;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .connected {
+            background-color: #dcf8c6;
+            color: #075e54;
+        }
+        .waiting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>مسح رمز QR</h1>
+        <div id="qrcode"></div>
+        <div id="status" class="status waiting">في انتظار المسح...</div>
+    </div>
+    <script>
+        function checkStatus() {
+            fetch('/status')
+                .then(res => res.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('status');
+                    if (data.connected) {
+                        statusDiv.textContent = 'متصل!';
+                        statusDiv.className = 'status connected';
+                    }
+                });
+        }
+
+        function updateQR() {
+            fetch('/qr')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.qr) {
+                        document.getElementById('qrcode').innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
+                    }
+                });
+        }
+
+        // تحديث كل 5 ثواني
+        setInterval(() => {
+            updateQR();
+            checkStatus();
+        }, 5000);
+
+        // تحديث أول مرة
+        updateQR();
+        checkStatus();
+    </script>
+</body>
+</html>
+`;
+
+fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), htmlContent);
+
+client.on('qr', async (qr) => {
+    try {
+        lastQR = await qrcode.toDataURL(qr);
+        console.log('New QR Code received. Visit http://164.92.246.226:3002 to scan');
+    } catch (err) {
+        console.error('Error generating QR code:', err);
+    }
 });
 
 client.on('ready', () => {
-    console.log('\n=========================');
     console.log('WhatsApp client is ready!');
-    console.log('=========================\n');
     lastQR = '';
 });
 
-client.on('authenticated', () => {
-    console.log('\n=========================');
-    console.log('WhatsApp client authenticated');
-    console.log('=========================\n');
+// نقطة نهاية لحالة الاتصال
+app.get('/status', (req, res) => {
+    res.json({ connected: !!client.info });
 });
 
-client.on('auth_failure', (msg) => {
-    console.error('\n=========================');
-    console.error('WhatsApp authentication failed:', msg);
-    console.error('=========================\n');
-});
-
-// إضافة نقطة نهاية للحصول على رمز QR
+// نقطة نهاية لرمز QR
 app.get('/qr', (req, res) => {
     if (lastQR) {
         res.json({ qr: lastQR });
@@ -96,14 +183,12 @@ app.post('/send-certificate', async (req, res) => {
 
 const port = 3002;
 
-console.log('\n=========================');
 console.log('Starting WhatsApp client...');
-console.log('=========================\n');
-
 client.initialize().catch(err => {
     console.error('Failed to initialize WhatsApp client:', err);
 });
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+    console.log(`Visit http://164.92.246.226:${port} to scan QR code`);
 });
