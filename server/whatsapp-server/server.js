@@ -57,14 +57,6 @@ app.post('/send-certificate', async (req, res) => {
         
         const { phoneNumber, imageData } = req.body;
         
-        console.log('Extracted data:', {
-            phoneNumberType: typeof phoneNumber,
-            phoneNumberValue: phoneNumber,
-            hasImageData: !!imageData,
-            imageDataType: typeof imageData,
-            imageDataStartsWith: imageData?.substring(0, 30)
-        });
-
         // التحقق من البيانات
         if (!phoneNumber || !imageData) {
             console.error('Missing required fields:', {
@@ -79,6 +71,14 @@ app.post('/send-certificate', async (req, res) => {
                 }
             });
         }
+
+        console.log('Data validation:', {
+            phoneNumberType: typeof phoneNumber,
+            phoneNumberValue: phoneNumber,
+            imageDataType: typeof imageData,
+            imageDataLength: imageData.length,
+            imageDataStartsWith: imageData.substring(0, 50)
+        });
 
         // تنسيق رقم الهاتف
         let formattedNumber = String(phoneNumber).trim();
@@ -96,19 +96,35 @@ app.post('/send-certificate', async (req, res) => {
         }
 
         // إنشاء الوسائط
-        console.log('Creating media from data URL...');
-        const media = new MessageMedia('image/png', imageData.split(',')[1], 'certificate.png');
-        console.log('Media created successfully');
+        console.log('Creating media...');
+        let base64Data;
+        
+        try {
+            if (imageData.startsWith('data:image/')) {
+                base64Data = imageData.split(',')[1];
+            } else {
+                base64Data = imageData;
+            }
+            
+            if (!base64Data) {
+                throw new Error('Invalid base64 data');
+            }
+            
+            const media = new MessageMedia('image/png', base64Data, 'certificate.png');
+            console.log('Media created successfully');
 
-        // إرسال الرسالة
-        console.log('Sending message to:', formattedNumber);
-        const message = await client.sendMessage(formattedNumber, media, {
-            caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
-        });
+            // إرسال الرسالة
+            console.log('Sending message to:', formattedNumber);
+            const message = await client.sendMessage(formattedNumber, media, {
+                caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
+            });
 
-        console.log('Message sent successfully:', message.id);
-        res.json({ success: true, messageId: message.id });
-
+            console.log('Message sent successfully:', message.id);
+            res.json({ success: true, messageId: message.id });
+        } catch (mediaError) {
+            console.error('Error processing media:', mediaError);
+            throw new Error('Failed to process media: ' + mediaError.message);
+        }
     } catch (error) {
         console.error('Detailed error:', {
             message: error.message,
