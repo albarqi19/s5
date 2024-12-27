@@ -5,8 +5,18 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// تكوين CORS
-app.use(cors());
+// إعدادات CORS المحدثة
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://s5-kappa.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
+
+    // معالجة طلبات OPTIONS
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    next();
+});
 
 // زيادة حد حجم الطلب
 app.use(bodyParser.json({limit: '100mb'}));

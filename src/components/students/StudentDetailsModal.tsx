@@ -87,7 +87,7 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         
         console.log('Sending request to server...');
         
-        const response = await fetch('https://e502-164-92-246-226.ngrok-free.app/send-certificate', {
+        const response = await fetch('https://a591-164-92-246-226.ngrok-free.app/send-certificate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
