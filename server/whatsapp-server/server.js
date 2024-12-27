@@ -45,17 +45,32 @@ app.get('/qr', (req, res) => {
 app.post('/send-certificate', async (req, res) => {
     try {
         console.log('=== Received certificate request ===');
-        console.log('Request body:', {
-            hasBody: !!req.body,
-            keys: Object.keys(req.body || {}),
-            phoneNumber: req.body?.phoneNumber,
-            hasImageData: !!req.body?.imageData
-        });
+        
+        // التحقق من وجود req.body
+        if (!req.body) {
+            console.error('No request body received');
+            return res.status(400).json({ error: 'No request body' });
+        }
 
-        const { phoneNumber, imageData } = req.body || {};
+        console.log('Request body type:', typeof req.body);
+        console.log('Request body keys:', Object.keys(req.body));
+        
+        const { phoneNumber, imageData } = req.body;
+        
+        console.log('Extracted data:', {
+            phoneNumberType: typeof phoneNumber,
+            phoneNumberValue: phoneNumber,
+            hasImageData: !!imageData,
+            imageDataType: typeof imageData,
+            imageDataStartsWith: imageData?.substring(0, 30)
+        });
 
         // التحقق من البيانات
         if (!phoneNumber || !imageData) {
+            console.error('Missing required fields:', {
+                hasPhone: !!phoneNumber,
+                hasImage: !!imageData
+            });
             return res.status(400).json({
                 error: 'Missing required data',
                 details: {
@@ -67,19 +82,26 @@ app.post('/send-certificate', async (req, res) => {
 
         // تنسيق رقم الهاتف
         let formattedNumber = String(phoneNumber).trim();
+        console.log('Phone number before formatting:', formattedNumber);
+        
         if (!formattedNumber.endsWith('@c.us')) {
             formattedNumber = `${formattedNumber}@c.us`;
         }
+        console.log('Phone number after formatting:', formattedNumber);
 
         // التحقق من اتصال WhatsApp
         if (!client.info) {
+            console.error('WhatsApp client not ready');
             return res.status(500).json({ error: 'WhatsApp client not ready' });
         }
 
         // إنشاء الوسائط
-        const media = MessageMedia.fromDataURL(imageData);
+        console.log('Creating media from data URL...');
+        const media = new MessageMedia('image/png', imageData.split(',')[1], 'certificate.png');
+        console.log('Media created successfully');
 
         // إرسال الرسالة
+        console.log('Sending message to:', formattedNumber);
         const message = await client.sendMessage(formattedNumber, media, {
             caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
@@ -88,7 +110,11 @@ app.post('/send-certificate', async (req, res) => {
         res.json({ success: true, messageId: message.id });
 
     } catch (error) {
-        console.error('Error in send-certificate:', error);
+        console.error('Detailed error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         res.status(500).json({ error: error.message });
     }
 });

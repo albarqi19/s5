@@ -88,16 +88,25 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         if (!phoneNumber.startsWith('966')) {
           phoneNumber = `966${phoneNumber.replace(/^0+/, '')}`;
         }
+        console.log('Phone number after formatting:', phoneNumber);
+
+        // التحقق من البيانات قبل الإرسال
+        console.log('Image data validation:', {
+          type: typeof dataUrl,
+          length: dataUrl.length,
+          startsWith: dataUrl.substring(0, 30),
+          isBase64: dataUrl.includes('base64')
+        });
 
         const requestData = {
           phoneNumber,
-          imageData: dataUrl,
+          imageData: dataUrl
         };
 
-        console.log('Request data:', {
+        console.log('Full request data:', {
           phoneNumber: requestData.phoneNumber,
           imageDataLength: requestData.imageData.length,
-          imageDataStart: requestData.imageData.substring(0, 50) + '...'
+          imageDataStart: requestData.imageData.substring(0, 50)
         });
 
         const response = await fetch('https://5db8-51-36-170-105.ngrok-free.app/send-certificate', {
@@ -109,14 +118,14 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
           body: JSON.stringify(requestData)
         });
 
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Server error:', errorData);
-          throw new Error(errorData.error || 'Failed to send certificate');
+          throw new Error(responseData.error || 'Failed to send certificate');
         }
 
-        const data = await response.json();
-        console.log('Server response:', data);
         toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
       } catch (error) {
         console.error('Error sending certificate:', error);
