@@ -62,7 +62,7 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
 
       const imageData = canvas.toDataURL('image/png');
 
-      const response = await fetch('https://164.92.246.226:3002/send-certificate', {
+      const response = await fetch('http://164.92.246.226:3002/send-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

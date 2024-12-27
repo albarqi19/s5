@@ -6,7 +6,6 @@ import fs from 'fs';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -183,19 +182,15 @@ app.post('/send-certificate', async (req, res) => {
 
 const port = 3002;
 
-// قراءة شهادات SSL
-const privateKey = fs.readFileSync(path.join(__dirname, 'certs', 'private.key'));
-const certificate = fs.readFileSync(path.join(__dirname, 'certs', 'certificate.crt'));
-const credentials = { key: privateKey, cert: certificate };
-
-// إنشاء خادم HTTPS
-const httpsServer = https.createServer(credentials, app);
+// إنشاء خادم HTTP
+const http = require('http');
+const server = http.createServer(app);
 
 console.log('Starting WhatsApp client...');
 client.initialize().catch(err => {
     console.error('Failed to initialize WhatsApp client:', err);
 });
 
-httpsServer.listen(port, () => {
-    console.log(`HTTPS Server running on port ${port}`);
+server.listen(port, () => {
+    console.log(`HTTP Server running on port ${port}`);
 });
