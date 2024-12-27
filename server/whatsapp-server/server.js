@@ -55,77 +55,63 @@ app.get('/qr', (req, res) => {
 
 app.post('/send-certificate', cors(), async (req, res) => {
     console.log('=== Received certificate request ===');
-    console.log('Request headers:', req.headers);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     try {
-        if (!req.body || typeof req.body !== 'object') {
-            console.error('Invalid request body:', req.body);
-            return res.status(400).json({ error: 'Invalid request body' });
-        }
-
-        const { phoneNumber, imageData } = req.body;
-        
-        console.log('Extracted data:', {
-            phoneNumberExists: !!phoneNumber,
-            phoneNumberType: typeof phoneNumber,
-            phoneNumberValue: phoneNumber,
-            imageDataExists: !!imageData,
-            imageDataLength: imageData?.length
+        // طباعة البيانات المستلمة
+        console.log('Headers:', req.headers);
+        console.log('Body:', {
+            hasBody: !!req.body,
+            bodyType: typeof req.body,
+            keys: req.body ? Object.keys(req.body) : [],
+            phoneNumber: req.body?.phoneNumber,
+            hasImageData: !!req.body?.imageData
         });
 
+        // التحقق من البيانات
+        const { phoneNumber, imageData } = req.body || {};
+        
         if (!phoneNumber || !imageData) {
-            console.error('Missing required fields:', {
-                hasPhone: !!phoneNumber,
-                hasImage: !!imageData
+            return res.status(400).json({
+                error: 'Missing data',
+                details: {
+                    hasPhone: !!phoneNumber,
+                    hasImage: !!imageData
+                }
             });
-            return res.status(400).json({ error: 'Missing phone number or image data' });
         }
 
-        if (typeof phoneNumber !== 'string') {
-            console.error('Invalid phone number type:', typeof phoneNumber);
-            return res.status(400).json({ error: 'Phone number must be a string' });
-        }
+        // معالجة رقم الهاتف
+        const cleanNumber = phoneNumber.trim();
+        console.log('Phone number processing:', {
+            original: phoneNumber,
+            cleaned: cleanNumber
+        });
 
-        console.log('Processing phone number:', phoneNumber);
-        let formattedNumber = phoneNumber.trim();
-        console.log('After trim:', formattedNumber);
-        
-        formattedNumber = formattedNumber.replace(/\D/g, '');
-        console.log('After removing non-digits:', formattedNumber);
-        
-        if (formattedNumber.startsWith('966')) {
-            formattedNumber = formattedNumber.substring(3);
-            console.log('After removing 966:', formattedNumber);
-        }
-        if (formattedNumber.startsWith('0')) {
-            formattedNumber = formattedNumber.substring(1);
-            console.log('After removing leading 0:', formattedNumber);
-        }
-        
-        const finalNumber = `966${formattedNumber}@c.us`;
-        console.log('Final formatted number:', finalNumber);
-
-        console.log('Converting image data...');
+        // إنشاء كائن الوسائط
         const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
         const media = new MessageMedia('image/png', base64Data, 'certificate.png');
+        console.log('Media created successfully');
 
-        console.log('Checking WhatsApp client status...');
+        // التحقق من حالة العميل
         if (!client.info) {
             console.error('WhatsApp client not ready');
             return res.status(500).json({ error: 'WhatsApp client not ready' });
         }
 
-        console.log('Sending WhatsApp message...');
-        const message = await client.sendMessage(finalNumber, media, {
+        // إرسال الرسالة
+        console.log('Sending message to:', cleanNumber);
+        const message = await client.sendMessage(`${cleanNumber}@c.us`, media, {
             caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
         
-        console.log('Message sent successfully:', message);
+        console.log('Message sent successfully:', message.id);
         res.json({ success: true, messageId: message.id });
     } catch (error) {
         console.error('Error in send-certificate:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 

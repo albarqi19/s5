@@ -83,19 +83,25 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
           return;
         }
 
-        const payload = {
-          phoneNumber: student.phone,
+        // تنسيق رقم الهاتف
+        let phoneNumber = student.phone.trim();
+        if (!phoneNumber.startsWith('966')) {
+          phoneNumber = `966${phoneNumber.replace(/^0+/, '')}`;
+        }
+
+        const payload = JSON.stringify({
+          phoneNumber: phoneNumber,
           imageData: dataUrl,
-        };
+        });
         
         console.log('Payload being sent:', {
-          phoneNumber: payload.phoneNumber,
-          imageDataLength: payload.imageData.length
+          phoneNumber: phoneNumber,
+          imageDataLength: dataUrl.length
         });
         
         console.log('Sending request to server:', {
           url: 'https://5db8-51-36-170-105.ngrok-free.app/send-certificate',
-          phoneNumber: student.phone,
+          phoneNumber: phoneNumber,
           imageLength: dataUrl.length
         });
         
@@ -103,9 +109,10 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
+            'ngrok-skip-browser-warning': 'true',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify(payload)
+          body: payload
         });
 
         console.log('Response status:', response.status);
