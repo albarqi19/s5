@@ -1,7 +1,6 @@
 const express = require('express');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -17,9 +16,28 @@ app.use(cors({
 // معالجة خاصة لطلبات OPTIONS
 app.options('*', cors());
 
-// زيادة حد حجم الطلب
-app.use(express.json({limit: '100mb'}));
-app.use(express.urlencoded({limit: '100mb', extended: true}));
+// Middleware لمعالجة البيانات
+app.use(express.json({
+    limit: '100mb',
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('Invalid JSON:', e);
+            res.status(400).json({ error: 'Invalid JSON' });
+            throw new Error('Invalid JSON');
+        }
+    }
+}));
+
+// Middleware للتحقق من البيانات
+app.use('/send-certificate', (req, res, next) => {
+    console.log('Request body received:', req.body);
+    if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ error: 'Invalid request body' });
+    }
+    next();
+});
 
 let lastQR = '';
 
@@ -53,63 +71,52 @@ app.get('/qr', (req, res) => {
     res.send(lastQR);
 });
 
-app.post('/send-certificate', cors(), async (req, res) => {
+app.post('/send-certificate', async (req, res) => {
     console.log('=== Received certificate request ===');
+    console.log('Request body:', req.body);
     
     try {
-        // طباعة البيانات المستلمة
-        console.log('Headers:', req.headers);
-        console.log('Body:', {
-            hasBody: !!req.body,
-            bodyType: typeof req.body,
-            keys: req.body ? Object.keys(req.body) : [],
-            phoneNumber: req.body?.phoneNumber,
-            hasImageData: !!req.body?.imageData
-        });
+        const { phoneNumber, imageData } = req.body;
 
-        // التحقق من البيانات
-        const { phoneNumber, imageData } = req.body || {};
-        
         if (!phoneNumber || !imageData) {
-            return res.status(400).json({
+            console.error('Missing data:', { hasPhone: !!phoneNumber, hasImage: !!imageData });
+            return res.status(400).json({ 
                 error: 'Missing data',
-                details: {
-                    hasPhone: !!phoneNumber,
-                    hasImage: !!imageData
-                }
+                details: { hasPhone: !!phoneNumber, hasImage: !!imageData }
             });
         }
 
-        // معالجة رقم الهاتف
-        const cleanNumber = phoneNumber.trim();
-        console.log('Phone number processing:', {
-            original: phoneNumber,
-            cleaned: cleanNumber
-        });
+        // تنسيق رقم الهاتف
+        const number = phoneNumber.toString().trim();
+        console.log('Processing number:', number);
 
-        // إنشاء كائن الوسائط
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-        const media = new MessageMedia('image/png', base64Data, 'certificate.png');
-        console.log('Media created successfully');
+        // إنشاء الوسائط
+        try {
+            const base64Data = imageData.toString().replace(/^data:image\/\w+;base64,/, '');
+            const media = new MessageMedia('image/png', base64Data, 'certificate.png');
+            console.log('Media created successfully');
 
-        // التحقق من حالة العميل
-        if (!client.info) {
-            console.error('WhatsApp client not ready');
-            return res.status(500).json({ error: 'WhatsApp client not ready' });
+            // التحقق من اتصال WhatsApp
+            if (!client.info) {
+                throw new Error('WhatsApp client not ready');
+            }
+
+            // إرسال الرسالة
+            const message = await client.sendMessage(`${number}@c.us`, media, {
+                caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
+            });
+
+            console.log('Message sent successfully:', message.id);
+            res.json({ success: true, messageId: message.id });
+        } catch (mediaError) {
+            console.error('Error processing media:', mediaError);
+            throw new Error('Failed to process media: ' + mediaError.message);
         }
-
-        // إرسال الرسالة
-        console.log('Sending message to:', cleanNumber);
-        const message = await client.sendMessage(`${cleanNumber}@c.us`, media, {
-            caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
-        });
-        
-        console.log('Message sent successfully:', message.id);
-        res.json({ success: true, messageId: message.id });
     } catch (error) {
         console.error('Error in send-certificate:', error);
         res.status(500).json({ 
             error: error.message,
+            type: error.name,
             stack: error.stack
         });
     }

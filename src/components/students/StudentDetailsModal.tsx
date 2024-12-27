@@ -84,48 +84,40 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         }
 
         // تنسيق رقم الهاتف
-        let phoneNumber = student.phone.trim();
+        let phoneNumber = student.phone.toString().trim();
         if (!phoneNumber.startsWith('966')) {
           phoneNumber = `966${phoneNumber.replace(/^0+/, '')}`;
         }
 
-        const payload = JSON.stringify({
-          phoneNumber: phoneNumber,
+        const requestData = {
+          phoneNumber,
           imageData: dataUrl,
+        };
+
+        console.log('Request data:', {
+          phoneNumber: requestData.phoneNumber,
+          imageDataLength: requestData.imageData.length,
+          imageDataStart: requestData.imageData.substring(0, 50) + '...'
         });
-        
-        console.log('Payload being sent:', {
-          phoneNumber: phoneNumber,
-          imageDataLength: dataUrl.length
-        });
-        
-        console.log('Sending request to server:', {
-          url: 'https://5db8-51-36-170-105.ngrok-free.app/send-certificate',
-          phoneNumber: phoneNumber,
-          imageLength: dataUrl.length
-        });
-        
+
         const response = await fetch('https://5db8-51-36-170-105.ngrok-free.app/send-certificate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true',
-            'Accept': 'application/json'
+            'ngrok-skip-browser-warning': 'true'
           },
-          body: payload
+          body: JSON.stringify(requestData)
         });
 
-        console.log('Response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Server response:', data);
-          toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
-        } else {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        if (!response.ok) {
+          const errorData = await response.json();
           console.error('Server error:', errorData);
-          toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
+          throw new Error(errorData.error || 'Failed to send certificate');
         }
+
+        const data = await response.json();
+        console.log('Server response:', data);
+        toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
       } catch (error) {
         console.error('Error sending certificate:', error);
         toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
