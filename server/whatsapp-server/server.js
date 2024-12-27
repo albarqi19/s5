@@ -1,105 +1,86 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
-const path = require('path');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
 const app = express();
 
-// تكوين CORS للسماح بالطلبات من Vercel
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning'],
-    credentials: true
-}));
+// تكوين CORS
+app.use(cors());
 
 // زيادة حد حجم الطلب
 app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// متغيرات لتخزين حالة QR
-let currentQR = null;
-let currentStatus = 'جاري التحميل...';
+let lastQR = '';
 
-// إنشاء عميل واتساب
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true,
-        defaultViewport: null
+        headless: true
     }
 });
 
-// إنشاء نقطة نهاية للحصول على حالة QR
-app.get('/qr-status', (req, res) => {
-    res.json({
-        qr: currentQR,
-        status: currentStatus
-    });
-});
-
-// عرض QR code للتسجيل
 client.on('qr', (qr) => {
-    currentQR = qr;
-    currentStatus = 'يرجى مسح الرمز باستخدام تطبيق واتساب';
-    console.log('تم إنشاء رمز QR جديد');
+    lastQR = qr;
+    console.log('New QR Code received');
 });
 
 client.on('ready', () => {
-    currentStatus = '✅ تم الاتصال بنجاح! يمكنك الآن إرسال الشهادات';
     console.log('WhatsApp client is ready!');
+    lastQR = '';
 });
 
-client.on('authenticated', () => {
-    currentStatus = '✅ تم التحقق بنجاح!';
+app.get('/qr', (req, res) => {
+    res.send(lastQR);
 });
 
-client.on('auth_failure', () => {
-    currentStatus = '❌ فشل في التحقق!';
-});
-
-// API لإرسال الشهادة
 app.post('/send-certificate', async (req, res) => {
-    const { phone, image, message } = req.body;
-
+    console.log('Received certificate request');
     try {
-        if (!client.info) {
-            return res.status(500).json({ error: 'WhatsApp client not ready' });
+        const { phoneNumber, imageData } = req.body;
+        
+        if (!phoneNumber || !imageData) {
+            console.error('Missing data:', { hasPhone: !!phoneNumber, hasImage: !!imageData });
+            return res.status(400).json({ error: 'Missing phone number or image data' });
         }
 
-        // تنسيق رقم الهاتف
-        const formattedPhone = phone.replace(/\D/g, '');
-        const chatId = `${formattedPhone}@c.us`;
-
-        // إرسال الرسالة النصية أولاً
-        await client.sendMessage(chatId, message);
-
-        // معالجة الصورة
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        const media = new MessageMedia('image/jpeg', base64Data, 'certificate.jpg');
+        console.log('Processing phone number:', phoneNumber);
         
-        // إرسال الصورة
-        console.log('Sending message...');
-        await client.sendMessage(chatId, media, { 
+        let formattedNumber = phoneNumber.replace(/\D/g, '');
+        if (formattedNumber.startsWith('966')) {
+            formattedNumber = formattedNumber.substring(3);
+        }
+        if (formattedNumber.startsWith('0')) {
+            formattedNumber = formattedNumber.substring(1);
+        }
+        const finalNumber = `966${formattedNumber}@c.us`;
+        
+        console.log('Formatted number:', finalNumber);
+        
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        const media = new MessageMedia('image/png', base64Data, 'certificate.png');
+
+        console.log('Sending WhatsApp message...');
+        await client.sendMessage(finalNumber, media, {
             caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
-
+        
+        console.log('Message sent successfully');
         res.json({ success: true });
     } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('Error in send-certificate:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// بدء تشغيل العميل والخادم
-client.initialize();
+const port = 3002;
 
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log('افتح المتصفح على العنوان التالي لمسح رمز QR:');
-    console.log(`http://localhost:${PORT}`);
+client.initialize().catch(err => {
+    console.error('Failed to initialize WhatsApp client:', err);
+});
+
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
