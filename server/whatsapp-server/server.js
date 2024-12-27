@@ -1,13 +1,11 @@
 const express = require('express');
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
-
-// تكوين CORS
 app.use(cors());
-
-// معالجة البيانات
 app.use(express.json({ limit: '100mb' }));
 
 let lastQR = '';
@@ -22,120 +20,85 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     lastQR = qr;
-    console.log('New QR Code received');
+    console.log('\n\n=========================');
+    console.log('Scan this QR code in WhatsApp:');
+    console.log('=========================\n\n');
+    qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
+    console.log('\n=========================');
     console.log('WhatsApp client is ready!');
+    console.log('=========================\n');
     lastQR = '';
 });
 
 client.on('authenticated', () => {
+    console.log('\n=========================');
     console.log('WhatsApp client authenticated');
+    console.log('=========================\n');
 });
 
 client.on('auth_failure', (msg) => {
+    console.error('\n=========================');
     console.error('WhatsApp authentication failed:', msg);
+    console.error('=========================\n');
 });
 
+// إضافة نقطة نهاية للحصول على رمز QR
 app.get('/qr', (req, res) => {
-    res.send(lastQR);
+    if (lastQR) {
+        res.json({ qr: lastQR });
+    } else {
+        res.status(404).json({ error: 'No QR code available' });
+    }
 });
 
 app.post('/send-certificate', async (req, res) => {
     try {
-        console.log('=== Received certificate request ===');
-        
-        // التحقق من وجود req.body
-        if (!req.body) {
-            console.error('No request body received');
-            return res.status(400).json({ error: 'No request body' });
-        }
-
-        console.log('Request body type:', typeof req.body);
-        console.log('Request body keys:', Object.keys(req.body));
-        
         const { phoneNumber, imageData } = req.body;
-        
-        // التحقق من البيانات
+
         if (!phoneNumber || !imageData) {
-            console.error('Missing required fields:', {
-                hasPhone: !!phoneNumber,
-                hasImage: !!imageData
-            });
-            return res.status(400).json({
-                error: 'Missing required data',
-                details: {
-                    hasPhone: !!phoneNumber,
-                    hasImage: !!imageData
-                }
-            });
+            return res.status(400).json({ error: 'Missing phone number or image data' });
         }
 
-        console.log('Data validation:', {
-            phoneNumberType: typeof phoneNumber,
-            phoneNumberValue: phoneNumber,
-            imageDataType: typeof imageData,
-            imageDataLength: imageData.length,
-            imageDataStartsWith: imageData.substring(0, 50)
-        });
+        if (!client.info) {
+            return res.status(500).json({ error: 'WhatsApp client not ready. Please scan the QR code first.' });
+        }
+
+        // حفظ الصورة مؤقتاً
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        const tempFilePath = './temp_certificate.png';
+        
+        fs.writeFileSync(tempFilePath, base64Data, 'base64');
 
         // تنسيق رقم الهاتف
-        let formattedNumber = String(phoneNumber).trim();
-        console.log('Phone number before formatting:', formattedNumber);
-        
+        let formattedNumber = phoneNumber.toString().trim();
         if (!formattedNumber.endsWith('@c.us')) {
             formattedNumber = `${formattedNumber}@c.us`;
         }
-        console.log('Phone number after formatting:', formattedNumber);
 
-        // التحقق من اتصال WhatsApp
-        if (!client.info) {
-            console.error('WhatsApp client not ready');
-            return res.status(500).json({ error: 'WhatsApp client not ready' });
-        }
-
-        // إنشاء الوسائط
-        console.log('Creating media...');
-        let base64Data;
-        
-        try {
-            if (imageData.startsWith('data:image/')) {
-                base64Data = imageData.split(',')[1];
-            } else {
-                base64Data = imageData;
-            }
-            
-            if (!base64Data) {
-                throw new Error('Invalid base64 data');
-            }
-            
-            const media = new MessageMedia('image/png', base64Data, 'certificate.png');
-            console.log('Media created successfully');
-
-            // إرسال الرسالة
-            console.log('Sending message to:', formattedNumber);
-            const message = await client.sendMessage(formattedNumber, media, {
-                caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
-            });
-
-            console.log('Message sent successfully:', message.id);
-            res.json({ success: true, messageId: message.id });
-        } catch (mediaError) {
-            console.error('Error processing media:', mediaError);
-            throw new Error('Failed to process media: ' + mediaError.message);
-        }
-    } catch (error) {
-        console.error('Detailed error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
+        // إرسال الصورة
+        const chat = await client.getChatById(formattedNumber);
+        await chat.sendMessage('شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني', {
+            media: fs.readFileSync(tempFilePath)
         });
+
+        // حذف الملف المؤقت
+        fs.unlinkSync(tempFilePath);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 const port = 3002;
+
+console.log('\n=========================');
+console.log('Starting WhatsApp client...');
+console.log('=========================\n');
 
 client.initialize().catch(err => {
     console.error('Failed to initialize WhatsApp client:', err);
