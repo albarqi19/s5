@@ -2,10 +2,21 @@ const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+
+// تكوين CORS للسماح بالطلبات من Vercel
+app.use(cors({
+    origin: ['https://s5-kappa.vercel.app', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+// زيادة حد حجم الطلب
+app.use(bodyParser.json({limit: '100mb'}));
+app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // متغيرات لتخزين حالة QR
@@ -16,7 +27,8 @@ let currentStatus = 'جاري التحميل...';
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true,
         defaultViewport: null
     }
 });

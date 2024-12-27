@@ -78,7 +78,11 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
         },
+        mode: 'cors',
+        credentials: 'include',
         body: JSON.stringify({
           phoneNumber: student.phone,
           imageData: dataUrl,
