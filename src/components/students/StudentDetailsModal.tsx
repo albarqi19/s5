@@ -89,12 +89,12 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         };
         
         console.log('Sending request to server:', {
-          url: 'https://c154-51-36-170-105.ngrok-free.app/send-certificate',
+          url: 'https://5db8-51-36-170-105.ngrok-free.app/send-certificate',
           phoneNumber: student.phone,
           imageLength: dataUrl.length
         });
         
-        const response = await fetch('https://c154-51-36-170-105.ngrok-free.app/send-certificate', {
+        const response = await fetch('https://5db8-51-36-170-105.ngrok-free.app/send-certificate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

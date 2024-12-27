@@ -6,18 +6,16 @@ const bodyParser = require('body-parser');
 const app = express();
 
 // تكوين CORS
-const corsOptions = {
-    origin: 'https://s5-kappa.vercel.app',
+app.use(cors({
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning'],
+    credentials: true,
     optionsSuccessStatus: 200
-};
-
-// استخدام CORS middleware
-app.use(cors(corsOptions));
+}));
 
 // معالجة خاصة لطلبات OPTIONS
-app.options('*', cors(corsOptions));
+app.options('*', cors());
 
 // زيادة حد حجم الطلب
 app.use(bodyParser.json({limit: '100mb'}));
@@ -55,7 +53,7 @@ app.get('/qr', (req, res) => {
     res.send(lastQR);
 });
 
-app.post('/send-certificate', cors(corsOptions), async (req, res) => {
+app.post('/send-certificate', cors(), async (req, res) => {
     console.log('=== Received certificate request ===');
     console.log('Request headers:', req.headers);
     console.log('Request body keys:', Object.keys(req.body));
