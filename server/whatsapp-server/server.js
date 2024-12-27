@@ -7,12 +7,15 @@ const app = express();
 
 // إعدادات CORS المحدثة
 app.use((req, res, next) => {
+    console.log('Incoming request:', req.method, req.path);
+    console.log('Request headers:', req.headers);
+    
     res.header('Access-Control-Allow-Origin', 'https://s5-kappa.vercel.app');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
 
-    // معالجة طلبات OPTIONS
     if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS request');
         return res.status(200).end();
     }
     next();
@@ -42,17 +45,33 @@ client.on('ready', () => {
     lastQR = '';
 });
 
+client.on('authenticated', () => {
+    console.log('WhatsApp client authenticated');
+});
+
+client.on('auth_failure', (msg) => {
+    console.error('WhatsApp authentication failed:', msg);
+});
+
 app.get('/qr', (req, res) => {
     res.send(lastQR);
 });
 
 app.post('/send-certificate', async (req, res) => {
-    console.log('Received certificate request');
+    console.log('=== Received certificate request ===');
+    console.log('Request headers:', req.headers);
+    console.log('Request body keys:', Object.keys(req.body));
+    
     try {
         const { phoneNumber, imageData } = req.body;
         
         if (!phoneNumber || !imageData) {
-            console.error('Missing data:', { hasPhone: !!phoneNumber, hasImage: !!imageData });
+            console.error('Missing data:', { 
+                hasPhone: !!phoneNumber, 
+                hasImage: !!imageData,
+                phoneType: typeof phoneNumber,
+                imageType: typeof imageData
+            });
             return res.status(400).json({ error: 'Missing phone number or image data' });
         }
 
@@ -68,17 +87,25 @@ app.post('/send-certificate', async (req, res) => {
         const finalNumber = `966${formattedNumber}@c.us`;
         
         console.log('Formatted number:', finalNumber);
+        console.log('Image data length:', imageData.length);
         
         const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
         const media = new MessageMedia('image/png', base64Data, 'certificate.png');
 
-        console.log('Sending WhatsApp message...');
-        await client.sendMessage(finalNumber, media, {
+        console.log('Attempting to send WhatsApp message...');
+        
+        // تحقق من حالة العميل
+        if (!client.info) {
+            console.error('WhatsApp client not ready');
+            return res.status(500).json({ error: 'WhatsApp client not ready' });
+        }
+
+        const message = await client.sendMessage(finalNumber, media, {
             caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
         
-        console.log('Message sent successfully');
-        res.json({ success: true });
+        console.log('Message sent successfully:', message);
+        res.json({ success: true, messageId: message.id });
     } catch (error) {
         console.error('Error in send-certificate:', error);
         res.status(500).json({ error: error.message });

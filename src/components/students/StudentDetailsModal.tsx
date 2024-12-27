@@ -75,9 +75,12 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
       console.log('Image data length:', dataUrl.length);
 
       try {
-        // تحقق من البيانات قبل الإرسال
-        if (!student.phone || !dataUrl) {
-          throw new Error('Missing phone number or certificate image');
+        console.log('Preparing to send certificate...');
+        
+        if (!student?.phone) {
+          console.error('No phone number available');
+          toast.error('رقم الهاتف غير متوفر');
+          return;
         }
 
         const payload = {
@@ -85,7 +88,11 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
           imageData: dataUrl,
         };
         
-        console.log('Sending request to server...');
+        console.log('Sending request to server:', {
+          url: 'https://a591-164-92-246-226.ngrok-free.app/send-certificate',
+          phoneNumber: student.phone,
+          imageLength: dataUrl.length
+        });
         
         const response = await fetch('https://a591-164-92-246-226.ngrok-free.app/send-certificate', {
           method: 'POST',
@@ -99,10 +106,12 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         console.log('Response status:', response.status);
         
         if (response.ok) {
-          console.log('Certificate sent successfully');
+          const data = await response.json();
+          console.log('Server response:', data);
           toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
         } else {
-          console.error('Server returned error:', response.status);
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('Server error:', errorData);
           toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
         }
       } catch (error) {
