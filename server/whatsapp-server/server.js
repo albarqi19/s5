@@ -1,9 +1,15 @@
-const express = require('express');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode');
-const fs = require('fs');
-const cors = require('cors');
-const path = require('path');
+import express from 'express';
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth } = pkg;
+import qrcode from 'qrcode';
+import fs from 'fs';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import https from 'https';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -116,7 +122,7 @@ fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), htmlContent);
 client.on('qr', async (qr) => {
     try {
         lastQR = await qrcode.toDataURL(qr);
-        console.log('New QR Code received. Visit http://164.92.246.226:3002 to scan');
+        console.log('New QR Code received');
     } catch (err) {
         console.error('Error generating QR code:', err);
     }
@@ -183,12 +189,19 @@ app.post('/send-certificate', async (req, res) => {
 
 const port = 3002;
 
+// قراءة شهادات SSL
+const privateKey = fs.readFileSync(path.join(__dirname, 'certs', 'private.key'));
+const certificate = fs.readFileSync(path.join(__dirname, 'certs', 'certificate.crt'));
+const credentials = { key: privateKey, cert: certificate };
+
+// إنشاء خادم HTTPS
+const httpsServer = https.createServer(credentials, app);
+
 console.log('Starting WhatsApp client...');
 client.initialize().catch(err => {
     console.error('Failed to initialize WhatsApp client:', err);
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    console.log(`Visit http://164.92.246.226:${port} to scan QR code`);
+httpsServer.listen(port, () => {
+    console.log(`HTTPS Server running on port ${port}`);
 });

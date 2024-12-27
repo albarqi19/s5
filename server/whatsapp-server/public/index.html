@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html dir="rtl">
 <head>
@@ -5,7 +6,7 @@
     <title>WhatsApp QR Code</title>
     <style>
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -16,94 +17,67 @@
         }
         .container {
             text-align: center;
-            background: white;
-            padding: 2rem;
+            padding: 20px;
+            background-color: white;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 90%;
-            width: 400px;
-        }
-        h1 {
-            color: #128C7E;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         #qrcode {
-            margin: 1rem 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 300px;
+            margin: 20px 0;
         }
         .status {
-            margin-top: 1rem;
-            padding: 0.5rem;
+            margin-top: 20px;
+            padding: 10px;
             border-radius: 5px;
-            background: #e8f5e9;
-            color: #2e7d32;
+        }
+        .connected {
+            background-color: #dcf8c6;
+            color: #075e54;
+        }
+        .waiting {
+            background-color: #fff3cd;
+            color: #856404;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>مسح رمز QR للاتصال بالواتساب</h1>
+        <h1>مسح رمز QR</h1>
         <div id="qrcode"></div>
-        <div class="status" id="status">جاري التحميل...</div>
+        <div id="status" class="status waiting">في انتظار المسح...</div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
     <script>
-        let qrContainer = document.getElementById('qrcode');
-        let statusDiv = document.getElementById('status');
-        let lastQR = null;
-        
-        function updateQRCode(qr) {
-            if (qr === lastQR) return; // تجنب إعادة إنشاء نفس QR code
-            lastQR = qr;
-            
-            // إزالة المحتوى السابق
-            qrContainer.innerHTML = '';
-            
-            // إنشاء عنصر canvas جديد
-            const canvas = document.createElement('canvas');
-            qrContainer.appendChild(canvas);
-            
-            // إنشاء QR code
-            QRCode.toCanvas(canvas, qr, {
-                width: 300,
-                margin: 2,
-                color: {
-                    dark: '#128C7E',
-                    light: '#FFFFFF'
-                }
-            }).catch(err => {
-                console.error(err);
-                statusDiv.textContent = 'حدث خطأ في إنشاء رمز QR';
-            });
-        }
-        
-        function checkServer() {
-            fetch('/qr-status')
-                .then(response => response.json())
+        function checkStatus() {
+            fetch('/status')
+                .then(res => res.json())
                 .then(data => {
-                    if (data.qr) {
-                        updateQRCode(data.qr);
-                        if (!data.status) {
-                            statusDiv.textContent = 'يرجى مسح الرمز باستخدام تطبيق واتساب';
-                        }
+                    const statusDiv = document.getElementById('status');
+                    if (data.connected) {
+                        statusDiv.textContent = 'متصل!';
+                        statusDiv.className = 'status connected';
                     }
-                    if (data.status) {
-                        statusDiv.textContent = data.status;
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    statusDiv.textContent = 'حدث خطأ في الاتصال';
                 });
         }
 
-        // التحقق كل 2 ثانية
-        setInterval(checkServer, 2000);
-        checkServer(); // التحقق الأولي
+        function updateQR() {
+            fetch('/qr')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.qr) {
+                        document.getElementById('qrcode').innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
+                    }
+                });
+        }
+
+        // تحديث كل 5 ثواني
+        setInterval(() => {
+            updateQR();
+            checkStatus();
+        }, 5000);
+
+        // تحديث أول مرة
+        updateQR();
+        checkStatus();
     </script>
 </body>
 </html>
