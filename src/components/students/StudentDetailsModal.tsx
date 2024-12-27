@@ -56,6 +56,8 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         scale: 2,
         useCORS: true,
         backgroundColor: 'white',
+        width: type === 'card' ? 600 : elementRef.current.offsetWidth, 
+        height: type === 'card' ? 400 : elementRef.current.offsetHeight 
       });
 
       const imageData = canvas.toDataURL('image/png');
@@ -67,7 +69,8 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         },
         body: JSON.stringify({
           phoneNumber: student.phone,
-          imageData: imageData
+          imageData: imageData,
+          type: type 
         })
       });
 
@@ -230,12 +233,6 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     إغلاق
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    تحميل البطاقة
                   </button>
                   <button
                     onClick={sendCardToWhatsApp}

@@ -149,7 +149,7 @@ app.get('/qr', (req, res) => {
 
 app.post('/send-certificate', async (req, res) => {
     try {
-        const { phoneNumber, imageData } = req.body;
+        const { phoneNumber, imageData, type } = req.body;
 
         if (!phoneNumber || !imageData) {
             return res.status(400).json({ error: 'Missing phone number or image data' });
@@ -171,7 +171,7 @@ app.post('/send-certificate', async (req, res) => {
         // إرسال الصورة
         const chat = await client.getChatById(formattedNumber);
         await chat.sendMessage(media, {
-            caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
+            caption: type === 'card' ? 'هذه بطاقتك من برنامج نافس،بمجمع سعيد رداد القرآني' : 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
 
         res.json({ success: true });
