@@ -56,10 +56,17 @@ app.get('/qr', (req, res) => {
 app.post('/send-certificate', cors(), async (req, res) => {
     console.log('=== Received certificate request ===');
     console.log('Request headers:', req.headers);
-    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Full request body:', req.body);
     
     try {
         const { phoneNumber, imageData } = req.body;
+        console.log('Extracted data:', {
+            phoneNumberExists: !!phoneNumber,
+            phoneNumberType: typeof phoneNumber,
+            phoneNumberValue: phoneNumber,
+            imageDataExists: !!imageData,
+            imageDataLength: imageData?.length
+        });
         
         if (!phoneNumber || !imageData) {
             console.error('Missing data:', { 
@@ -73,12 +80,22 @@ app.post('/send-certificate', cors(), async (req, res) => {
 
         console.log('Processing phone number:', phoneNumber);
         
+        // تحقق من أن phoneNumber موجود قبل استخدام replace
+        if (typeof phoneNumber !== 'string') {
+            console.error('Invalid phone number type:', typeof phoneNumber);
+            return res.status(400).json({ error: 'Invalid phone number format' });
+        }
+
         let formattedNumber = phoneNumber.replace(/\D/g, '');
+        console.log('After first replace:', formattedNumber);
+        
         if (formattedNumber.startsWith('966')) {
             formattedNumber = formattedNumber.substring(3);
+            console.log('After removing 966:', formattedNumber);
         }
         if (formattedNumber.startsWith('0')) {
             formattedNumber = formattedNumber.substring(1);
+            console.log('After removing leading 0:', formattedNumber);
         }
         const finalNumber = `966${formattedNumber}@c.us`;
         

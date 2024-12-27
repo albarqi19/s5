@@ -88,6 +88,11 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
           imageData: dataUrl,
         };
         
+        console.log('Payload being sent:', {
+          phoneNumber: payload.phoneNumber,
+          imageDataLength: payload.imageData.length
+        });
+        
         console.log('Sending request to server:', {
           url: 'https://5db8-51-36-170-105.ngrok-free.app/send-certificate',
           phoneNumber: student.phone,
