@@ -74,7 +74,7 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
       console.log('Phone number being sent:', student.phone);
       console.log('Image data length:', dataUrl.length);
 
-      const response = await fetch('http://164.92.246.226/send-certificate', {
+      const response = await fetch('https://164.92.246.226/send-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
