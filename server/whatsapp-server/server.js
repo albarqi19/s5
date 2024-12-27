@@ -8,9 +8,9 @@ const app = express();
 
 // تكوين CORS للسماح بالطلبات من Vercel
 app.use(cors({
-    origin: ['https://s5-kappa.vercel.app', 'http://localhost:5173'],
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning'],
     credentials: true
 }));
 

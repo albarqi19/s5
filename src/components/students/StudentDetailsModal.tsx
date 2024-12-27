@@ -74,27 +74,39 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
       console.log('Phone number being sent:', student.phone);
       console.log('Image data length:', dataUrl.length);
 
-      const response = await fetch('https://164.92.246.226/send-certificate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phoneNumber: student.phone,
-          imageData: dataUrl,
-        }),
-      });
+      try {
+        const response = await fetch('https://32b5-164-92-246-226.ngrok-free.app/send-certificate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          mode: 'no-cors', 
+          body: JSON.stringify({
+            phoneNumber: student.phone,
+            imageData: dataUrl,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error:', errorData);
-        throw new Error('فشل في إرسال الشهادة');
+        if (response.type === 'opaque') {
+          console.log('Certificate sent successfully (opaque response)');
+          toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
+        } else {
+          const data = await response.json();
+          console.log('Server response:', data);
+          if (data.success) {
+            toast.success('تم إرسال الشهادة بنجاح', { id: 'sending' });
+          } else {
+            toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
+          }
+        }
+      } catch (error) {
+        console.error('Error sending certificate:', error);
+        toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
       }
-
-      toast.success('تم إرسال الشهادة بنجاح!', { id: 'sending' });
     } catch (error) {
       console.error('Error sending certificate:', error);
-      toast.error('فشل في إرسال الشهادة', { id: 'sending' });
+      toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
     }
   };
 
