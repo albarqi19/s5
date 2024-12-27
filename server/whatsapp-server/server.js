@@ -1,6 +1,6 @@
 import express from 'express';
 import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
+const { Client, LocalAuth, MessageMedia } = pkg;
 import qrcode from 'qrcode';
 import fs from 'fs';
 import cors from 'cors';
@@ -159,26 +159,20 @@ app.post('/send-certificate', async (req, res) => {
             return res.status(500).json({ error: 'WhatsApp client not ready. Please scan the QR code first.' });
         }
 
-        // حفظ الصورة مؤقتاً
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-        const tempFilePath = './temp_certificate.png';
-        
-        fs.writeFileSync(tempFilePath, base64Data, 'base64');
-
         // تنسيق رقم الهاتف
         let formattedNumber = phoneNumber.toString().trim();
         if (!formattedNumber.endsWith('@c.us')) {
             formattedNumber = `${formattedNumber}@c.us`;
         }
 
+        // إنشاء كائن MessageMedia من البيانات
+        const media = new MessageMedia('image/png', imageData.split(',')[1]);
+
         // إرسال الصورة
         const chat = await client.getChatById(formattedNumber);
-        await chat.sendMessage('شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني', {
-            media: fs.readFileSync(tempFilePath)
+        await chat.sendMessage(media, {
+            caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
-
-        // حذف الملف المؤقت
-        fs.unlinkSync(tempFilePath);
 
         res.json({ success: true });
     } catch (error) {

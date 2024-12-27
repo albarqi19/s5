@@ -19,6 +19,7 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
   const [showCard, setShowCard] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
 
   const handleDownload = async () => {
@@ -44,23 +45,20 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
     }
   };
 
-  const sendCertificateToWhatsApp = async () => {
-    if (!student?.phone || !certificateRef.current) {
-      toast.error('رقم الهاتف أو صورة الشهادة غير متوفرة');
+  const sendToWhatsApp = async (elementRef: React.RefObject<HTMLDivElement>, type: 'card' | 'certificate') => {
+    if (!student?.phone || !elementRef.current) {
+      toast.error('رقم الهاتف أو الصورة غير متوفرة');
       return;
     }
 
     try {
-      const certificateElement = certificateRef.current;
-      if (!certificateElement) return;
-
-      const canvas = await html2canvas(certificateElement, {
+      const canvas = await html2canvas(elementRef.current, {
         scale: 2,
         useCORS: true,
-        logging: true,
+        backgroundColor: 'white',
       });
 
-      const certificateImageData = canvas.toDataURL('image/png');
+      const imageData = canvas.toDataURL('image/png');
 
       const response = await fetch('https://164.92.246.226:3002/send-certificate', {
         method: 'POST',
@@ -69,51 +67,25 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
         },
         body: JSON.stringify({
           phoneNumber: student.phone,
-          imageData: certificateImageData
+          imageData: imageData
         })
       });
 
       const data = await response.json();
       
       if (data.success) {
-        toast.success('تم إرسال الشهادة بنجاح عبر واتساب');
+        toast.success(`تم إرسال ${type === 'card' ? 'البطاقة' : 'الشهادة'} بنجاح عبر واتساب`);
       } else {
-        throw new Error(data.error || 'فشل في إرسال الشهادة');
+        throw new Error(data.error || 'فشل في إرسال الصورة');
       }
     } catch (error) {
-      console.error('Error sending certificate:', error);
-      toast.error('حدث خطأ أثناء إرسال الشهادة: ' + error.message);
+      console.error('Error sending image:', error);
+      toast.error('حدث خطأ أثناء إرسال الصورة: ' + error.message);
     }
   };
 
-  // إرسال طلب تجريبي لرؤية البيانات في Zapier
-  const sendTestData = async () => {
-    try {
-      const response = await fetch('https://hooks.zapier.com/hooks/catch/21024704/288k618/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: "966500000000",
-          studentName: "طالب تجريبي",
-          certificate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-          message: "هذا اختبار للتأكد من ظهور البيانات في Zapier"
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('فشل في إرسال البيانات التجريبية');
-      }
-
-      console.log('تم إرسال البيانات التجريبية بنجاح');
-    } catch (error) {
-      console.error('Error sending test data:', error);
-    }
-  };
-
-  // يمكنك استدعاء هذه الدالة في console المتصفح:
-  // window.sendTestData = sendTestData;
+  const sendCardToWhatsApp = () => sendToWhatsApp(cardRef, 'card');
+  const sendCertificateToWhatsApp = () => sendToWhatsApp(certificateRef, 'certificate');
 
   if (!isOpen) return null;
 
@@ -247,7 +219,31 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
                     رجوع
                   </button>
                 </div>
-                <StudentCard student={student} />
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                  <div ref={cardRef}>
+                    <StudentCard student={student} />
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowCard(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    إغلاق
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    تحميل البطاقة
+                  </button>
+                  <button
+                    onClick={sendCardToWhatsApp}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    إرسال للواتساب
+                  </button>
+                </div>
               </>
             ) : (
               <>
