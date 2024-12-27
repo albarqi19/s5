@@ -60,62 +60,41 @@ export function StudentDetailsModal({ student, onClose, onEdit, onDelete, isOpen
 
       toast.loading('جاري إرسال الشهادة...', { id: 'sending' });
 
-      // تحويل العنصر إلى صورة
-      const canvas = await html2canvas(certificateRef.current, {
+      // تحويل الشهادة إلى صورة
+      const certificateElement = certificateRef.current;
+      if (!certificateElement) return;
+
+      const canvas = await html2canvas(certificateElement, {
         scale: 2,
         useCORS: true,
-        backgroundColor: 'white',
-        removeContainer: true,
-        logging: false,
-        imageTimeout: 0,
-        onclone: (clonedDoc) => {
-          const bgElement = clonedDoc.querySelector('.certificate-bg');
-          if (bgElement) {
-            bgElement.style.backgroundImage = 'none';
-          }
-        }
+        logging: true,
       });
-      
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
-      // تنسيق رقم الهاتف للواتساب
-      const formatPhoneForWhatsApp = (phone: string) => {
-        // إزالة أي رموز غير رقمية
-        const cleanNumber = phone.replace(/\D/g, '');
-        // إضافة رمز الدولة إذا لم يكن موجوداً
-        return cleanNumber.startsWith('966') ? cleanNumber : `966${cleanNumber.startsWith('0') ? cleanNumber.slice(1) : cleanNumber}`;
-      };
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('Phone number being sent:', student.phone);
+      console.log('Image data length:', dataUrl.length);
 
-      // إعداد الرسالة
-      const message = `السلام عليكم ورحمة الله وبركاته
-شهادة شكر وتقدير للطالب: ${student.studentName}
-الحلقة: ${student.level}
-المستوى: ${student.parts}
-النقاط: ${student.points}
-
-بارك الله في جهودكم 🌸`;
-
-      // إرسال الشهادة عبر WhatsApp
-      const response = await fetch('http://localhost:3002/send-certificate', {
+      const response = await fetch('http://164.92.246.226:3002/send-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: formatPhoneForWhatsApp(student.phone),
-          image: imageData,
-          message
+          phoneNumber: student.phone,
+          imageData: dataUrl,
         }),
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
         throw new Error('فشل في إرسال الشهادة');
       }
 
       toast.success('تم إرسال الشهادة بنجاح!', { id: 'sending' });
     } catch (error) {
       console.error('Error sending certificate:', error);
-      toast.error('حدث خطأ أثناء إرسال الشهادة', { id: 'sending' });
+      toast.error('فشل في إرسال الشهادة', { id: 'sending' });
     }
   };
 

@@ -70,8 +70,9 @@ app.post('/send-certificate', async (req, res) => {
         const media = new MessageMedia('image/jpeg', base64Data, 'certificate.jpg');
         
         // إرسال الصورة
+        console.log('Sending message...');
         await client.sendMessage(chatId, media, { 
-            caption: 'شهادة الشكر والتقدير'
+            caption: 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
         });
 
         res.json({ success: true });
