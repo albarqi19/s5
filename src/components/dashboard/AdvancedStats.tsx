@@ -6,37 +6,49 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import type { Student } from '../../types/student';
 import type { Record } from '../../types/record';
 
-export function AdvancedStats() {
+interface AdvancedStatsProps {
+  studentsData: Student[] | null | undefined;
+}
+
+export function AdvancedStats({ studentsData }: AdvancedStatsProps) {
   const { isDark } = useThemeStore();
-  const { data: students = [], loading: loadingStudents } = useCachedData<Student[]>('students');
   const { data: records = [], loading: loadingRecords } = useCachedData<Record[]>('records');
+  
+  // استخدام البيانات المرسلة مباشرة من المكون الأب بدلاً من جلبها مرة أخرى
+  const students = studentsData || [];
   
   // حساب الإحصائيات
   const stats = useMemo(() => {
-    if (students.length === 0) return null;
+    if (!students || students.length === 0) return null;
     
     // إحصائيات عامة
     const totalStudents = students.length;
-    const totalPoints = students.reduce((sum, student) => sum + student.points, 0);
+    const totalPoints = students.reduce((sum, student) => sum + (student.points || 0), 0);
     const averagePoints = totalStudents ? Math.round(totalPoints / totalStudents) : 0;
     
     // تصنيف الطلاب حسب النقاط
-    const excellentStudents = students.filter(student => student.points >= 80);
-    const goodStudents = students.filter(student => student.points >= 60 && student.points < 80);
-    const averageStudents = students.filter(student => student.points >= 40 && student.points < 60);
-    const belowAverageStudents = students.filter(student => student.points < 40);
+    const excellentStudents = students.filter(student => (student.points || 0) >= 80);
+    const goodStudents = students.filter(student => (student.points || 0) >= 60 && (student.points || 0) < 80);
+    const averageStudents = students.filter(student => (student.points || 0) >= 40 && (student.points || 0) < 60);
+    const belowAverageStudents = students.filter(student => (student.points || 0) < 40);
 
     // تحليل حسب الحلقات
-    const circles = [...new Set(students.map(student => student.level))];
+    const levelsSet = new Set();
+    students.forEach(student => {
+      if (student.level) levelsSet.add(student.level);
+    });
+    const circles = Array.from(levelsSet);
+    
     const circleStats = circles.map(circle => {
       const circleStudents = students.filter(student => student.level === circle);
-      const circlePoints = circleStudents.reduce((sum, student) => sum + student.points, 0);
-      const circleAverage = Math.round(circlePoints / circleStudents.length);
+      const circleStudentsCount = circleStudents.length;
+      const circlePoints = circleStudents.reduce((sum, student) => sum + (student.points || 0), 0);
+      const circleAverage = circleStudentsCount > 0 ? Math.round(circlePoints / circleStudentsCount) : 0;
       return {
         name: circle,
-        studentCount: circleStudents.length,
+        studentCount: circleStudentsCount,
         averagePoints: circleAverage,
-        excellent: circleStudents.filter(student => student.points >= 80).length
+        excellent: circleStudents.filter(student => (student.points || 0) >= 80).length
       };
     }).sort((a, b) => b.averagePoints - a.averagePoints);
 
@@ -49,6 +61,7 @@ export function AdvancedStats() {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const currentMonthRecords = records.filter(record => {
+        if (!record.date) return false;
         const recordDate = new Date(record.date);
         return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
       });
@@ -60,8 +73,8 @@ export function AdvancedStats() {
         const recentRecords = records.slice(0, 10);
         const olderRecords = records.slice(records.length - 10);
         
-        const recentPointsAvg = recentRecords.reduce((sum, record) => sum + record.points, 0) / recentRecords.length;
-        const olderPointsAvg = olderRecords.reduce((sum, record) => sum + record.points, 0) / olderRecords.length;
+        const recentPointsAvg = recentRecords.reduce((sum, record) => sum + (record.points || 0), 0) / recentRecords.length;
+        const olderPointsAvg = olderRecords.reduce((sum, record) => sum + (record.points || 0), 0) / olderRecords.length;
         
         trend = recentPointsAvg - olderPointsAvg;
       }
@@ -81,7 +94,7 @@ export function AdvancedStats() {
     };
   }, [students, records]);
 
-  if (loadingStudents || loadingRecords) {
+  if (loadingRecords) {
     return (
       <div className={`w-full p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
         <div className="flex justify-center">
@@ -214,27 +227,27 @@ export function AdvancedStats() {
       <div className="mb-8">
         <h3 className={`font-bold mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>تصنيف الطلاب حسب المستوى</h3>
         <div className="h-4 rounded-full overflow-hidden flex">
-          <div className="bg-green-500" style={{ width: `${stats.excellentCount / stats.totalStudents * 100}%` }}></div>
-          <div className="bg-blue-500" style={{ width: `${stats.goodCount / stats.totalStudents * 100}%` }}></div>
-          <div className="bg-yellow-500" style={{ width: `${stats.averageCount / stats.totalStudents * 100}%` }}></div>
-          <div className="bg-red-500" style={{ width: `${stats.belowAverageCount / stats.totalStudents * 100}%` }}></div>
+          <div className="bg-green-500" style={{ width: `${stats.totalStudents > 0 ? (stats.excellentCount / stats.totalStudents * 100) : 0}%` }}></div>
+          <div className="bg-blue-500" style={{ width: `${stats.totalStudents > 0 ? (stats.goodCount / stats.totalStudents * 100) : 0}%` }}></div>
+          <div className="bg-yellow-500" style={{ width: `${stats.totalStudents > 0 ? (stats.averageCount / stats.totalStudents * 100) : 0}%` }}></div>
+          <div className="bg-red-500" style={{ width: `${stats.totalStudents > 0 ? (stats.belowAverageCount / stats.totalStudents * 100) : 0}%` }}></div>
         </div>
         <div className="flex justify-between mt-2 text-xs">
           <div className="flex items-center">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>متميز ({Math.round(stats.excellentCount / stats.totalStudents * 100)}%)</span>
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>متميز ({stats.totalStudents > 0 ? Math.round(stats.excellentCount / stats.totalStudents * 100) : 0}%)</span>
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>جيد ({Math.round(stats.goodCount / stats.totalStudents * 100)}%)</span>
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>جيد ({stats.totalStudents > 0 ? Math.round(stats.goodCount / stats.totalStudents * 100) : 0}%)</span>
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>متوسط ({Math.round(stats.averageCount / stats.totalStudents * 100)}%)</span>
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>متوسط ({stats.totalStudents > 0 ? Math.round(stats.averageCount / stats.totalStudents * 100) : 0}%)</span>
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>بحاجة لدعم ({Math.round(stats.belowAverageCount / stats.totalStudents * 100)}%)</span>
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>بحاجة لدعم ({stats.totalStudents > 0 ? Math.round(stats.belowAverageCount / stats.totalStudents * 100) : 0}%)</span>
           </div>
         </div>
       </div>
@@ -261,7 +274,7 @@ export function AdvancedStats() {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {stats.circleStats.map((circle, index) => (
+              {stats.circleStats && stats.circleStats.map((circle, index) => (
                 <tr key={index} className={isDark ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="font-medium">{circle.name || 'غير محدد'}</div>
@@ -275,7 +288,7 @@ export function AdvancedStats() {
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {circle.excellent} ({Math.round(circle.excellent / circle.studentCount * 100)}%)
+                    {circle.excellent} ({circle.studentCount > 0 ? Math.round(circle.excellent / circle.studentCount * 100) : 0}%)
                   </td>
                 </tr>
               ))}

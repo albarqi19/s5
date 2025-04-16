@@ -25,7 +25,8 @@ export function useCachedData<T>(
 ) {
   const { ttl = CACHE_TTL, autoRefresh = true, forceRefresh = false } = options;
   
-  const [data, setData] = useState<T | null>(null);
+  // تعديل: البدء بمصفوفة فارغة [] بدلاً من null لتجنب أخطاء null.length
+  const [data, setData] = useState<T | []>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -47,15 +48,17 @@ export function useCachedData<T>(
       
       // حفظ البيانات في التخزين المؤقت
       globalCache[cacheKey] = {
-        data: response.data,
+        data: response.data || [], // تأكد من أن البيانات ليست null
         timestamp: now,
       };
       
-      setData(response.data);
+      setData(response.data || []); // تأكد من أن البيانات ليست null
       setError(null);
     } catch (err) {
       console.error(`Error fetching ${endpoint}:`, err);
       setError(`فشل في تحميل البيانات من ${endpoint}`);
+      // تعيين مصفوفة فارغة في حالة الخطأ
+      setData([]);
     } finally {
       setLoading(false);
     }
