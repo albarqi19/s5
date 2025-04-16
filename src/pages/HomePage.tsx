@@ -114,35 +114,35 @@ export function HomePage() {
             title="إدارة الطلاب" 
             icon={<Users className="h-6 w-6" />}
             description="إضافة وتعديل بيانات الطلاب ومتابعة أدائهم"
-            linkTo="/students"
+            to="/students"
           />
           
           <DashboardCard 
             title="إدارة المعلمين" 
             icon={<GraduationCap className="h-6 w-6" />}
             description="إدارة المعلمين وتعيين الحلقات والصلاحيات"
-            linkTo="/teachers"
+            to="/teachers"
           />
           
           <DashboardCard 
             title="سجلات الحضور" 
             icon={<ClipboardList className="h-6 w-6" />}
             description="متابعة حضور الطلاب وتسجيل الغياب"
-            linkTo="/records"
+            to="/records"
           />
 
           <DashboardCard 
             title="شهادات التميز" 
             icon={<Award className="h-6 w-6" />}
             description="إنشاء وطباعة شهادات للطلاب المتميزين"
-            linkTo="/certificates"
+            to="/certificates"
           />
           
           <DashboardCard 
             title="إنذارات الطلاب" 
             icon={<AlertTriangle className="h-6 w-6" />}
             description="متابعة المخالفات والإنذارات للطلاب"
-            linkTo="/students"
+            to="/students"
             badge={studentsData ? studentsData.filter(s => s.violations?.length > 0).length : 0}
           />
         </div>
