@@ -115,6 +115,7 @@ export function HomePage() {
             icon={<Users className="h-6 w-6" />}
             description="إضافة وتعديل بيانات الطلاب ومتابعة أدائهم"
             to="/students"
+            className={`${isDark ? 'bg-blue-900/40 hover:bg-blue-900/60' : 'bg-blue-50 hover:bg-blue-100'} shadow-lg hover:shadow-xl`}
           />
           
           <DashboardCard 
@@ -122,6 +123,7 @@ export function HomePage() {
             icon={<GraduationCap className="h-6 w-6" />}
             description="إدارة المعلمين وتعيين الحلقات والصلاحيات"
             to="/teachers"
+            className={`${isDark ? 'bg-green-900/40 hover:bg-green-900/60' : 'bg-green-50 hover:bg-green-100'} shadow-lg hover:shadow-xl`}
           />
           
           <DashboardCard 
@@ -129,6 +131,7 @@ export function HomePage() {
             icon={<ClipboardList className="h-6 w-6" />}
             description="متابعة حضور الطلاب وتسجيل الغياب"
             to="/records"
+            className={`${isDark ? 'bg-purple-900/40 hover:bg-purple-900/60' : 'bg-purple-50 hover:bg-purple-100'} shadow-lg hover:shadow-xl`}
           />
 
           <DashboardCard 
@@ -136,6 +139,7 @@ export function HomePage() {
             icon={<Award className="h-6 w-6" />}
             description="إنشاء وطباعة شهادات للطلاب المتميزين"
             to="/certificates"
+            className={`${isDark ? 'bg-yellow-900/40 hover:bg-yellow-900/60' : 'bg-yellow-50 hover:bg-yellow-100'} shadow-lg hover:shadow-xl`}
           />
           
           <DashboardCard 
@@ -144,6 +148,7 @@ export function HomePage() {
             description="متابعة المخالفات والإنذارات للطلاب"
             to="/students"
             badge={studentsData ? studentsData.filter(s => s.violations?.length > 0).length : 0}
+            className={`${isDark ? 'bg-red-900/40 hover:bg-red-900/60' : 'bg-red-50 hover:bg-red-100'} shadow-lg hover:shadow-xl`}
           />
         </div>
       </div>

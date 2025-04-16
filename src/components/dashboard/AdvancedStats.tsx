@@ -247,7 +247,7 @@ export function AdvancedStats({ studentsData }: AdvancedStatsProps) {
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>بحاجة لدعم ({stats.totalStudents > 0 ? Math.round(stats.belowAverageCount / stats.totalStudents * 100) : 0}%)</span>
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>بحاجة إلى تحسين ({stats.totalStudents > 0 ? Math.round(stats.belowAverageCount / stats.totalStudents * 100) : 0}%)</span>
           </div>
         </div>
       </div>
