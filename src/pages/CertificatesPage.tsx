@@ -4,9 +4,10 @@ import { useApi } from '../hooks/api/useApi';
 import { useThemeStore } from '../store/themeStore';
 import { CertificateCard } from '../components/certificates/CertificateCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { AlertTriangle, Award, Printer } from '../components/icons';
+import { AlertTriangle, Award, Download, Printer } from '../components/icons';
 import type { Student } from '../types/student';
 import { CertificateTemplate } from '../components/certificates/CertificateTemplate';
+import { CertificateSelector, type CertificateDesign } from '../components/certificates/CertificateSelector';
 
 export function CertificatesPage() {
   const { isDark } = useThemeStore();
@@ -14,6 +15,7 @@ export function CertificatesPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showOnlyExcellent, setShowOnlyExcellent] = useState(true);
+  const [selectedDesign, setSelectedDesign] = useState<CertificateDesign>('classic');
   
   // الطلاب المتميزين (أعلى من 80 نقطة)
   const excellentStudents = useMemo(() => {
@@ -35,6 +37,14 @@ export function CertificatesPage() {
     return filteredStudents.sort((a, b) => b.points - a.points);
   }, [students, excellentStudents, searchTerm, showOnlyExcellent]);
 
+  // تلقائياً اختيار التصميم المميز للطلاب المتفوقين (فوق 90 نقطة)
+  useMemo(() => {
+    if (selectedStudent && selectedStudent.points >= 90 && selectedDesign === 'classic') {
+      setSelectedDesign('premium');
+    }
+  }, [selectedStudent]);
+
+  // طباعة الشهادة
   const handlePrintCertificate = () => {
     if (!selectedStudent) return;
     
@@ -48,10 +58,16 @@ export function CertificatesPage() {
     printWindow.document.write('<style>');
     printWindow.document.write(`
       @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
       body {
         font-family: 'Tajawal', sans-serif;
         margin: 0;
         padding: 0;
+        color: #000;
+        background-color: white;
       }
       .certificate-container {
         width: 100%;
@@ -60,56 +76,66 @@ export function CertificatesPage() {
         justify-content: center;
         align-items: center;
       }
+      /* ضمان ظهور جميع العناصر بوضوح عند الطباعة */
+      * {
+        color: #000 !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+      }
+      /* تحسين ظهور العناصر الشفافة */
+      .opacity-10, .opacity-5 {
+        opacity: 0.2 !important;
+      }
     `);
     printWindow.document.write('</style></head><body>');
-    printWindow.document.write('<div class="certificate-container">');
+    printWindow.document.write('<div id="certificate-container"></div>');
     
-    // استدعاء مكون الشهادة وتمريره داخل نافذة الطباعة
-    const certificateHtml = `
-      <div style="width: 800px; height: 600px; border: 2px solid #d4af37; padding: 20px; text-align: center; background-color: #fffff0; position: relative;">
-        <div style="position: absolute; top: 10px; right: 10px; left: 10px;">
-          <img src="/mosque-logo.png" alt="شعار المسجد" style="height: 80px; margin-bottom: 10px;">
-          <h1 style="color: #8b4513; font-size: 28px; margin-bottom: 15px;">شهادة تقدير</h1>
-          <hr style="border: none; height: 1px; background-color: #d4af37; margin: 15px auto; width: 80%;">
-        </div>
-        
-        <div style="margin-top: 150px; padding: 20px;">
-          <p style="font-size: 18px; margin-bottom: 30px;">بسم الله الرحمن الرحيم</p>
-          <p style="font-size: 20px; margin-bottom: 20px;">تشهد إدارة حلقات المسجد بأن الطالب</p>
-          <h2 style="color: #8b4513; font-size: 32px; margin: 15px 0;">${selectedStudent.studentName}</h2>
-          <p style="font-size: 20px;">قد أظهر تميزاً واجتهاداً في حفظ كتاب الله</p>
-          <p style="font-size: 18px; margin-top: 15px;">وحصل على مجموع نقاط: <strong style="color: #8b4513;">${selectedStudent.points}</strong></p>
-          <p style="font-size: 18px;">المستوى: <strong>${selectedStudent.parts}</strong> - الحلقة: <strong>${selectedStudent.level}</strong></p>
-        </div>
-        
-        <div style="position: absolute; bottom: 30px; width: 100%; right: 0; left: 0;">
-          <p style="font-size: 16px; font-style: italic;">نسأل الله أن يبارك له في علمه وأن ينفع به الإسلام والمسلمين</p>
-          <hr style="border: none; height: 1px; background-color: #d4af37; margin: 15px auto; width: 50%;">
-          <p style="font-size: 16px;">تاريخ الإصدار: ${new Date().toLocaleDateString('ar-SA')}</p>
-          
-          <div style="display: flex; justify-content: space-between; margin: 0 100px;">
-            <div>
-              <p style="margin-bottom: 40px;">ختم الإدارة</p>
-              <div style="width: 100px; height: 40px; margin: 0 auto;"></div>
-            </div>
-            <div>
-              <p style="margin-bottom: 40px;">توقيع المشرف</p>
-              <div style="width: 100px; height: 40px; margin: 0 auto;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    printWindow.document.write(certificateHtml);
-    printWindow.document.write('</div></body></html>');
-    
-    printWindow.document.close();
-    printWindow.onload = () => {
+    // استخدام React لعرض الشهادة بدلاً من HTML ثابت
+    import('react-dom/client').then((ReactDOM) => {
+      const root = ReactDOM.createRoot(printWindow.document.getElementById('certificate-container') as HTMLElement);
+      root.render(<CertificateTemplate student={selectedStudent} design={selectedDesign} />);
+      
+      printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
       }, 500);
-    };
+    });
+  };
+
+  // تصدير الشهادة كصورة (باستخدام html2canvas)
+  const handleExportAsPNG = () => {
+    if (!selectedStudent) return;
+    
+    // التأكد من وجود html2canvas
+    if (typeof window.html2canvas === 'undefined') {
+      // لو لم تكن المكتبة موجودة، يتم استدعاؤها
+      const script = document.createElement('script');
+      script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+      script.onload = executeExport;
+      document.head.appendChild(script);
+    } else {
+      executeExport();
+    }
+    
+    // تنفيذ التصدير
+    function executeExport() {
+      const certificateElement = document.querySelector('.certificate-content') as HTMLElement;
+      if (!certificateElement) return;
+      
+      window.html2canvas(certificateElement, { 
+        scale: 2, 
+        backgroundColor: null,
+        logging: false,
+        allowTaint: true,
+        useCORS: true
+      }).then(canvas => {
+        // تحويل Canvas إلى رابط تحميل
+        const link = document.createElement('a');
+        link.download = `شهادة_${selectedStudent?.studentName.replace(/ /g, '_')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
   };
 
   if (loading) {
@@ -142,32 +168,51 @@ export function CertificatesPage() {
         {/* شهادة مختارة */}
         {selectedStudent && (
           <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4`}>
-            <div className={`relative bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-auto max-h-screen`}>
+            <div className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-5xl w-full overflow-auto max-h-[90vh]`}>
               <div className="absolute top-4 right-4 z-10">
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
               
               <div className="p-6">
-                <CertificateTemplate student={selectedStudent} />
+                {/* اختيار تصميم الشهادة */}
+                <CertificateSelector 
+                  selectedDesign={selectedDesign}
+                  onSelectDesign={setSelectedDesign}
+                />
                 
-                <div className="flex justify-center mt-6 gap-4">
+                {/* معاينة الشهادة */}
+                <div className={`border rounded-xl p-4 mb-6 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <CertificateTemplate student={selectedStudent} design={selectedDesign} />
+                </div>
+                
+                {/* أزرار العمليات */}
+                <div className="flex flex-wrap justify-center gap-4 mt-6">
                   <button
                     onClick={handlePrintCertificate}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
                   >
                     <Printer size={20} />
                     طباعة الشهادة
                   </button>
+                  
+                  <button
+                    onClick={handleExportAsPNG}
+                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
+                  >
+                    <Download size={20} />
+                    تنزيل كصورة
+                  </button>
+                  
                   <button
                     onClick={() => setSelectedStudent(null)}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     إلغاء
                   </button>
@@ -254,4 +299,11 @@ export function CertificatesPage() {
       </div>
     </PageLayout>
   );
+}
+
+// إضافة نوع html2canvas لتجنب أخطاء TypeScript
+declare global {
+  interface Window {
+    html2canvas: (element: HTMLElement, options?: any) => Promise<HTMLCanvasElement>;
+  }
 }
