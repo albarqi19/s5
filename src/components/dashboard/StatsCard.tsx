@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useThemeStore } from '../../store/themeStore';
 
 interface StatsCardProps {
   title: string;
   value: number | string;
-  icon: string;
-  color: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
+  icon: ReactNode;  // تغيير من string إلى ReactNode
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
   className?: string;
+  trend?: number;  // إضافة خاصية trend التي تُستخدم في HomePage
 }
 
 const colorClasses = {
@@ -32,7 +33,7 @@ const colorClasses = {
   }
 };
 
-export function StatsCard({ title, value, icon, color, className = '' }: StatsCardProps) {
+export function StatsCard({ title, value, icon, color = 'blue', className = '', trend }: StatsCardProps) {
   const { isDark } = useThemeStore();
   const colorClass = isDark ? colorClasses[color].dark : colorClasses[color].light;
 
@@ -45,6 +46,13 @@ export function StatsCard({ title, value, icon, color, className = '' }: StatsCa
         <div>
           <p className="text-lg font-medium opacity-90">{title}</p>
           <p className="mt-2 text-3xl font-bold">{value}</p>
+          {trend !== undefined && (
+            <div className="mt-2 text-sm flex items-center">
+              <span className={trend >= 0 ? 'text-green-300' : 'text-red-300'}>
+                {trend > 0 ? `+${trend}%` : `${trend}%`}
+              </span>
+            </div>
+          )}
         </div>
         <div className="text-4xl opacity-90 bg-white bg-opacity-20 p-3 rounded-full">{icon}</div>
       </div>

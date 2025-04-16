@@ -143,7 +143,7 @@ export function HomePage() {
             icon={<AlertTriangle className="h-6 w-6" />}
             description="متابعة المخالفات والإنذارات للطلاب"
             linkTo="/students"
-            badge={studentsData.filter(s => s.violations?.length > 0).length}
+            badge={studentsData ? studentsData.filter(s => s.violations?.length > 0).length : 0}
           />
         </div>
       </div>
