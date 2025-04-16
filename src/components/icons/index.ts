@@ -16,5 +16,6 @@ export {
   Clock,
   Filter,
   Award,
-  Printer
+  Printer,
+  Download
 } from 'lucide-react';
