@@ -63,7 +63,7 @@ export function HomePage() {
           </div>
           
           <div className="relative p-8 text-white">
-            <h1 className="text-3xl font-bold mb-2">مرحباً بك في نظام إدارة الحلقات</h1>
+            <h1 className="text-3xl font-bold mb-2">مرحباً بك  في لوحة تحكم برنامج نـافــس</h1>
             <p className="mb-6 opacity-90">اطلع على آخر إحصائيات الطلاب والحلقات</p>
             
             {stats && (
