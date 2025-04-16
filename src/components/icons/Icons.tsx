@@ -13,3 +13,5 @@ export const Plus = () => <span>➕</span>;
 export const ArrowRight = () => <span>➡️</span>;
 export const X = () => <span>❌</span>;
 export const AlertTriangle = () => <span>⚠️</span>;
+export const Award = () => <span>🏆</span>;
+export const Printer = () => <span>🖨️</span>;

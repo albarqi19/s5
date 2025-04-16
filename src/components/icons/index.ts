@@ -15,5 +15,6 @@ export {
   ChevronUp,
   Clock,
   Filter,
-  Award
+  Award,
+  Printer
 } from 'lucide-react';
