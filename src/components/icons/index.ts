@@ -14,5 +14,6 @@ export {
   ChevronDown,
   ChevronUp,
   Clock,
-  Filter
+  Filter,
+  Award
 } from 'lucide-react';
