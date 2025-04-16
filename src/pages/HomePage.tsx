@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { useApi } from '../hooks/api/useApi';
 import { StatsCard } from '../components/dashboard/StatsCard';
+import { AdvancedStats } from '../components/dashboard/AdvancedStats';
 import type { Student } from '../types/student';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Users, ClipboardList, GraduationCap, Plus, AlertTriangle } from '../components/icons';
+import { Users, ClipboardList, GraduationCap, Plus, AlertTriangle, Award } from '../components/icons';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PageLayout } from '../components/layout/PageLayout';
 import { DashboardCard } from '../components/home/DashboardCard';
@@ -19,14 +20,14 @@ export function HomePage() {
     const totalStudents = studentsData.length;
     
     // حساب متوسط النقاط
-    const totalPoints = studentsData.reduce((sum, student) => sum + (student.points || 0), 0);
+    const totalPoints = studentsData.reduce((sum: number, student: Student) => sum + (student.points || 0), 0);
     const averagePoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
     
     // حساب عدد الحلقات الفريدة
-    const uniqueLevels = new Set(studentsData.map(student => student.level)).size;
+    const uniqueLevels = new Set(studentsData.map((student: Student) => student.level)).size;
     
     // حساب عدد الطلاب المتميزين (النقاط أعلى من 80)
-    const excellentStudents = studentsData.filter(student => (student.points || 0) > 80).length;
+    const excellentStudents = studentsData.filter((student: Student) => (student.points || 0) > 80).length;
 
     return {
       totalStudents,
@@ -101,9 +102,14 @@ export function HomePage() {
             className="transform hover:scale-105 transition-all duration-300"
           />
         </div>
+        
+        {/* Advanced Analytics */}
+        <div className="mb-12">
+          <AdvancedStats />
+        </div>
 
         {/* Main Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <DashboardCard
             to="/students"
             icon={
@@ -155,6 +161,24 @@ export function HomePage() {
               isDark 
                 ? 'bg-gray-800/50 hover:bg-gray-800' 
                 : 'bg-white hover:shadow-lg hover:bg-violet-50/30'
+            }`}
+          />
+          
+          <DashboardCard
+            to="/certificates"
+            icon={
+              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/10 ${
+                isDark ? 'text-amber-400' : 'text-amber-600'
+              }`}>
+                <Award className="w-10 h-10" />
+              </div>
+            }
+            title="الشهادات"
+            description="إصدار شهادات للطلاب المتميزين"
+            className={`group overflow-hidden relative transform hover:-translate-y-1 transition-all duration-300 ${
+              isDark 
+                ? 'bg-gray-800/50 hover:bg-gray-800' 
+                : 'bg-white hover:shadow-lg hover:bg-amber-50/30'
             }`}
           />
         </div>

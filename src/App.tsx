@@ -1,11 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import { HomePage } from './pages/HomePage';
 import { StudentsPage } from './pages/StudentsPage';
 import { RecordsPage } from './pages/RecordsPage';
 import { TeachersPage } from './pages/TeachersPage';
+import { CertificatesPage } from './pages/CertificatesPage';
 import { useThemeStore } from './store/themeStore';
+import { GlobalToast } from './components/common/GlobalToast';
 
 export default function App() {
   const { isDark } = useThemeStore();
@@ -21,19 +22,11 @@ export default function App() {
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/records" element={<RecordsPage />} />
             <Route path="/teachers" element={<TeachersPage />} />
+            <Route path="/certificates" element={<CertificatesPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            className: 'rtl',
-            style: {
-              background: isDark ? '#1f2937' : '#333',
-              color: '#fff',
-            },
-          }}
-        />
+        <GlobalToast />
       </div>
     </Router>
   );
