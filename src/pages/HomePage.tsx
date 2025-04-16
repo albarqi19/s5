@@ -127,9 +127,9 @@ export function HomePage() {
           />
           
           <DashboardCard 
-            title="سجلات الحضور" 
+            title="سجلات النقاط" 
             icon={<ClipboardList className="h-6 w-6" />}
-            description="متابعة حضور الطلاب وتسجيل الغياب"
+            description="متابعة نقاط الطلاب"
             to="/records"
             className={`${isDark ? 'bg-purple-900/40 hover:bg-purple-900/60' : 'bg-purple-50 hover:bg-purple-100'} shadow-lg hover:shadow-xl`}
           />
