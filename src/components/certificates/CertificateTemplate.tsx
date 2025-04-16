@@ -175,9 +175,9 @@ export function CertificateTemplate({ student, design = 'classic' }: Certificate
       </div>
       
       <div className="my-10 px-12">
-        <p className="text-2xl text-yellow-800 mb-6">تشهد إدارة حلقات المسجد بكل فخر واعتزاز بأن المتميز</p>
+        <p className="text-2xl text-yellow-800 mb-6">تشهد إدارة حلقات المسجد  بأن المتميز</p>
         <h2 className="text-5xl font-bold text-yellow-900 my-8 px-8 py-4 border-double border-4 border-yellow-600 rounded-lg shadow-inner bg-yellow-50">{student.studentName}</h2>
-        <p className="text-2xl text-yellow-800 mb-4">قد حقق تميزاً استثنائياً وإنجازاً متفوقاً في حفظ كتاب الله</p>
+        <p className="text-2xl text-yellow-800 mb-4">قد حقق تميزاً وإنجازاً متفوقاً في حفظ كتاب الله</p>
         
         <div className="flex justify-center my-8">
           <div className="bg-gradient-to-r from-yellow-500 to-yellow-700 text-white px-12 py-6 rounded-full shadow-xl">
