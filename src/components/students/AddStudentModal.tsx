@@ -4,6 +4,8 @@ import { useApi } from '../../hooks/api/useApi';
 import type { Student } from '../../types/student';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { SERVER_CONFIG } from '../../config/server';
+import { IterationPrompt } from '../ui/IterationPrompt';
+import useIteration from '../../hooks/useIteration';
 
 interface AddStudentModalProps {
   onClose: () => void;
@@ -20,6 +22,30 @@ export function AddStudentModal({ onClose, onSuccess }: AddStudentModalProps) {
     level: '',
     classNumber: '',
     phone: ''
+  });
+  
+  // Add iteration functionality
+  const { 
+    isPromptVisible, 
+    showPrompt, 
+    handleContinue, 
+    handleCancel,
+    iterationCount 
+  } = useIteration({
+    onContinue: () => {
+      // Reset form for the next student
+      setFormData({
+        id: '',
+        studentName: '',
+        level: formData.level, // Keep the same level for convenience
+        classNumber: formData.classNumber, // Keep the same class number
+        phone: ''
+      });
+    },
+    onCancel: () => {
+      // Close the modal when user decides not to continue
+      onClose();
+    }
   });
 
   // استخراج الحلقات الفريدة من البيانات
@@ -46,7 +72,9 @@ export function AddStudentModal({ onClose, onSuccess }: AddStudentModalProps) {
       console.log('Server response:', response.data);
       if (response.data) {
         await onSuccess();
-        onClose();
+        
+        // Instead of closing the modal immediately, show the iteration prompt
+        showPrompt();
       }
     } catch (error) {
       console.error('Error adding student:', error);
@@ -72,7 +100,9 @@ export function AddStudentModal({ onClose, onSuccess }: AddStudentModalProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto shadow-xl transform transition-all duration-200 scale-100`}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">إضافة طالب جديد</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            إضافة طالب جديد {iterationCount > 0 ? `(${iterationCount + 1})` : ''}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -178,6 +208,16 @@ export function AddStudentModal({ onClose, onSuccess }: AddStudentModalProps) {
           </div>
         </form>
       </div>
+      
+      {/* Iteration Prompt */}
+      <IterationPrompt
+        isVisible={isPromptVisible}
+        onContinue={handleContinue}
+        onCancel={handleCancel}
+        message="هل تريد إضافة طالب آخر؟"
+        continueText="نعم، إضافة طالب آخر"
+        cancelText="لا، إغلاق"
+      />
     </div>
   );
 }
