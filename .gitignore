@@ -50,3 +50,4 @@ yarn-error.log*
 # WhatsApp session files
 server/whatsapp-server/.wwebjs_auth/
 .wwebjs_auth/
+.qodo

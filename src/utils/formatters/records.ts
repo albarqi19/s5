@@ -5,7 +5,7 @@ export function formatRecords(rows: any[]): Record[] {
     id: row[0]?.toString() || '',
     studentId: row[1]?.toString() || '',
     studentName: row[2]?.toString() || '',
-    pages: row[3]?.toString() || '',
+    pages: parseInt(row[3]?.toString() || '0'),  // تحويل الصفحات إلى رقم بدلاً من نص
     reason: row[4]?.toString() || '',
     teacher: row[5]?.toString() || '',
     dateTime: row[6]?.toString() || '',
