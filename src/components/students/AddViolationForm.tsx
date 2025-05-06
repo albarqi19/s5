@@ -16,6 +16,7 @@ const VIOLATION_TYPES = [
   { id: 'late', label: 'تأخر', points: -3 },
   { id: 'misbehavior', label: 'سوء سلوك', points: -10 },
   { id: 'homework', label: 'عدم حل الواجب', points: -5 },
+  { id: 'disrespect', label: 'الاساءة', points: -25 },
   { id: 'other', label: 'أخرى', points: -1 }
 ];
 
@@ -23,6 +24,7 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
   const { isDark } = useThemeStore();
   const { showToast } = useToastStore();
   const { data: studentsData = [] } = useApi<Student>('students');
+  const { data: recordsData = [] } = useApi('records');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -58,29 +60,69 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
 
       // تحديد النقاط بناءً على نوع المخالفة
       let points = parseInt(formData.customPoints);
+      let violationTypeText = 'أخرى';
       
       if (formData.violationType !== 'other') {
         const violationType = VIOLATION_TYPES.find(type => type.id === formData.violationType);
         if (violationType) {
           points = violationType.points;
+          violationTypeText = violationType.label;
         }
       }
 
-      const now = new Date();
-      const violation = {
-        studentId: formData.studentId,
-        studentName: student.studentName,
-        points: points,
-        violationType: formData.violationType,
-        details: formData.details,
-        date: now.toLocaleDateString('ar-SA'),
-        timestamp: now.toISOString(),
-      };
+      // تأكد من أن points هي قيمة عددية صالحة
+      if (isNaN(points)) {
+        points = -5; // قيمة افتراضية إذا كانت النقاط غير صالحة
+      }
 
-      // إضافة المخالفة
-      await axios.post(`${SERVER_CONFIG.baseUrl}/api/violations`, violation);
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('ar-SA');
+      const dateString = now.toLocaleDateString('ar-SA');
       
-      // تحديث نقاط الطالب بخصم النقاط
+      // 1. إضافة المخالفة إلى جدول Record Data 
+      try {
+        console.log('Sending violation data:', {
+          rowIndex: "append",
+          violationData: {
+            id: student.id,
+            studentId: student.id,
+            studentName: student.studentName,
+            points: points.toString(), // تحويل الرقم إلى نص
+            reason: violationTypeText + (formData.details ? ` - ${formData.details}` : ''),
+            teacherId: '', 
+            time: timeString,
+            date: dateString,
+            phoneNumber: student.phone || '',
+            teacherName: '', 
+          }
+        });
+        
+        // تسجيل المخالفة - نستخدم rowIndex لأن الخادم الآن سيتجاهله ويستخدم 'append' دائمًا
+        const response = await axios.post(`${SERVER_CONFIG.baseUrl}/api/records/update-row`, {
+          rowIndex: "append", // هذه القيمة لن تُستخدم لكننا نرسلها للتوافق مع الواجهة السابقة
+          violationData: {
+            id: student.id,
+            studentId: student.id,
+            studentName: student.studentName,
+            points: points.toString(), // تحويل الرقم إلى نص
+            reason: violationTypeText + (formData.details ? ` - ${formData.details}` : ''),
+            teacherId: '', // يمكن إضافة معرف المعلم لاحقاً
+            time: timeString,
+            date: dateString,
+            phoneNumber: student.phone || '',
+            teacherName: '', // يمكن إضافة اسم المعلم لاحقاً
+          }
+        });
+        
+        console.log('Server response:', response.data);
+        showToast('تم تسجيل المخالفة بنجاح', 'success');
+      } catch (error) {
+        console.error('Error updating Record Data:', error);
+        showToast('حدث خطأ في تسجيل المخالفة في جدول البيانات', 'error');
+        return;
+      }
+
+      // 2. تحديث نقاط الطالب بخصم النقاط
       const updatedStudent = {
         ...student,
         points: Math.max(0, student.points + points), // نقوم بإضافة النقاط (سالبة) مع التأكد من عدم هبوط النقاط تحت الصفر
@@ -89,7 +131,6 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
       
       await axios.put(`${SERVER_CONFIG.baseUrl}/api/students/${student.id}`, updatedStudent);
       
-      showToast('تم تسجيل المخالفة بنجاح', 'success');
       onSuccess();
       onClose();
     } catch (error) {
@@ -209,6 +250,9 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
             <p className={`text-sm mt-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
               سيتم خصم {formData.violationType === 'other' ? Math.abs(parseInt(formData.customPoints)) : Math.abs(selectedViolationType?.points || 0)} نقطة 
               من الطالب {studentsData.find(s => s.id === formData.studentId)?.studentName}
+            </p>
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              ملاحظة: سيتم إضافة المخالفة في نهاية جدول البيانات.
             </p>
           </div>
         )}
