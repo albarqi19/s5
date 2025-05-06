@@ -1,17 +1,17 @@
 import React, { useMemo } from 'react';
 import { useApi } from '../hooks/api/useApi';
 import { StatsCard } from '../components/dashboard/StatsCard';
+import { AdvancedStats } from '../components/dashboard/AdvancedStats';
 import type { Student } from '../types/student';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Users, ClipboardList, GraduationCap, Plus, AlertTriangle } from '../components/icons';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { Users, ClipboardList, GraduationCap, AlertTriangle, Award } from '../components/icons';
 import { PageLayout } from '../components/layout/PageLayout';
 import { DashboardCard } from '../components/home/DashboardCard';
 import { useThemeStore } from '../store/themeStore';
 
 export function HomePage() {
   const { isDark } = useThemeStore();
-  const { data: studentsData, loading, error } = useApi<Student>('students');
+  const { data: studentsData, loading, error } = useApi<Student[]>('students');
 
   const stats = useMemo(() => {
     if (!studentsData) return null;
@@ -19,14 +19,14 @@ export function HomePage() {
     const totalStudents = studentsData.length;
     
     // حساب متوسط النقاط
-    const totalPoints = studentsData.reduce((sum, student) => sum + (student.points || 0), 0);
+    const totalPoints = studentsData.reduce((sum: number, student: Student) => sum + (student.points || 0), 0);
     const averagePoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
     
     // حساب عدد الحلقات الفريدة
-    const uniqueLevels = new Set(studentsData.map(student => student.level)).size;
+    const uniqueLevels = new Set(studentsData.map((student: Student) => student.level)).size;
     
     // حساب عدد الطلاب المتميزين (النقاط أعلى من 80)
-    const excellentStudents = studentsData.filter(student => (student.points || 0) > 80).length;
+    const excellentStudents = studentsData.filter((student: Student) => (student.points || 0) > 80).length;
 
     return {
       totalStudents,
@@ -61,159 +61,95 @@ export function HomePage() {
             <div className="absolute transform -rotate-45 -right-32 -top-32 w-96 h-96 bg-white rounded-full"></div>
             <div className="absolute transform -rotate-45 -left-32 -bottom-32 w-96 h-96 bg-white rounded-full"></div>
           </div>
-          <div className="relative px-6 py-12 text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">لوحة تحكم برنامج نــافـس</h1>
-            <p className="text-lg md:text-xl opacity-90">نظام إدارة وتتبع تقدم الطلاب</p>
+          
+          <div className="relative p-8 text-white">
+            <h1 className="text-3xl font-bold mb-2">مرحباً بك  في لوحة تحكم برنامج نـافــس</h1>
+            <p className="mb-6 opacity-90">اطلع على آخر إحصائيات الطلاب والحلقات</p>
+            
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatsCard 
+                  title="إجمالي الطلاب"
+                  value={stats.totalStudents}
+                  icon={<Users className="h-8 w-8" />}
+                  trend={5}
+                />
+                
+                <StatsCard 
+                  title="متوسط النقاط"
+                  value={stats.averagePoints}
+                  icon={<ClipboardList className="h-8 w-8" />}
+                  trend={2}
+                />
+                
+                <StatsCard 
+                  title="عدد الحلقات"
+                  value={stats.uniqueLevels}
+                  icon={<GraduationCap className="h-8 w-8" />}
+                  trend={0}
+                />
+                
+                <StatsCard 
+                  title="الطلاب المتميزون"
+                  value={stats.excellentStudents}
+                  icon={<Award className="h-8 w-8" />}
+                  trend={8}
+                />
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <StatsCard
-            title="إجمالي الطلاب"
-            value={stats?.totalStudents || 0}
-            icon="👥"
-            color="blue"
-            className="transform hover:scale-105 transition-all duration-300"
-          />
-          
-          <StatsCard
-            title="متوسط النقاط"
-            value={stats?.averagePoints || 0}
-            icon="⭐"
-            color="yellow"
-            className="transform hover:scale-105 transition-all duration-300"
-          />
-          
-          <StatsCard
-            title="عدد الحلقات"
-            value={stats?.uniqueLevels || 0}
-            icon="📚"
-            color="green"
-            className="transform hover:scale-105 transition-all duration-300"
-          />
-
-          <StatsCard
-            title="الطلاب المتميزون"
-            value={stats?.excellentStudents || 0}
-            icon="🏆"
-            color="purple"
-            className="transform hover:scale-105 transition-all duration-300"
-          />
-        </div>
-
-        {/* Main Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          <DashboardCard
+        
+        {/* Advanced Stats Section */}
+        {stats && studentsData && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">التحليلات والإحصائيات المتقدمة</h2>
+            <AdvancedStats studentsData={studentsData} />
+          </div>
+        )}
+        
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <DashboardCard 
+            title="إدارة الطلاب" 
+            icon={<Users className="h-6 w-6" />}
+            description="إضافة وتعديل بيانات الطلاب ومتابعة أدائهم"
             to="/students"
-            icon={
-              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 ${
-                isDark ? 'text-blue-400' : 'text-blue-600'
-              }`}>
-                <Users className="w-10 h-10" />
-              </div>
-            }
-            title="بيانات الطلاب"
-            description="عرض وإدارة بيانات الطلاب"
-            className={`group overflow-hidden relative transform hover:-translate-y-1 transition-all duration-300 ${
-              isDark 
-                ? 'bg-gray-800/50 hover:bg-gray-800' 
-                : 'bg-white hover:shadow-lg hover:bg-blue-50/30'
-            }`}
+            className={`${isDark ? 'bg-blue-900/40 hover:bg-blue-900/60' : 'bg-blue-50 hover:bg-blue-100'} shadow-lg hover:shadow-xl`}
           />
           
-          <DashboardCard
-            to="/records"
-            icon={
-              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 ${
-                isDark ? 'text-emerald-400' : 'text-emerald-600'
-              }`}>
-                <ClipboardList className="w-10 h-10" />
-              </div>
-            }
-            title="سجل النقاط"
-            description="عرض وإدارة سجل النقاط"
-            className={`group overflow-hidden relative transform hover:-translate-y-1 transition-all duration-300 ${
-              isDark 
-                ? 'bg-gray-800/50 hover:bg-gray-800' 
-                : 'bg-white hover:shadow-lg hover:bg-emerald-50/30'
-            }`}
-          />
-          
-          <DashboardCard
+          <DashboardCard 
+            title="إدارة المعلمين" 
+            icon={<GraduationCap className="h-6 w-6" />}
+            description="إدارة المعلمين وتعيين الحلقات والصلاحيات"
             to="/teachers"
-            icon={
-              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-violet-600/10 ${
-                isDark ? 'text-violet-400' : 'text-violet-600'
-              }`}>
-                <GraduationCap className="w-10 h-10" />
-              </div>
-            }
-            title="المعلمين"
-            description="عرض وإدارة بيانات المعلمين"
-            className={`group overflow-hidden relative transform hover:-translate-y-1 transition-all duration-300 ${
-              isDark 
-                ? 'bg-gray-800/50 hover:bg-gray-800' 
-                : 'bg-white hover:shadow-lg hover:bg-violet-50/30'
-            }`}
+            className={`${isDark ? 'bg-green-900/40 hover:bg-green-900/60' : 'bg-green-50 hover:bg-green-100'} shadow-lg hover:shadow-xl`}
           />
-        </div>
+          
+          <DashboardCard 
+            title="سجلات النقاط" 
+            icon={<ClipboardList className="h-6 w-6" />}
+            description="متابعة نقاط الطلاب"
+            to="/records"
+            className={`${isDark ? 'bg-purple-900/40 hover:bg-purple-900/60' : 'bg-purple-50 hover:bg-purple-100'} shadow-lg hover:shadow-xl`}
+          />
 
-        {/* Additional Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <a 
-            href="https://www.appsheet.com/start/d2527eab-ea7a-4fc7-89af-170b71cd850d#appName=%D8%A7%D8%AF%D8%A7%D8%B1%D8%A9%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-976645-24-12-26&row=&table=Record+Data&view=%D8%A7%D8%B6%D8%A7%D9%81%D8%A9+%D8%A7%D9%84%D9%86%D9%82%D8%A7%D8%B7"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`block p-6 rounded-2xl transition-all duration-300 group overflow-hidden relative transform hover:-translate-y-1 ${
-              isDark 
-                ? 'bg-gray-800/50 hover:bg-gray-800' 
-                : 'bg-white hover:shadow-lg hover:bg-amber-50/30'
-            }`}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/10 ${
-                isDark ? 'text-amber-400' : 'text-amber-600'
-              }`}>
-                <Plus className="w-10 h-10" />
-              </div>
-              <div className="mt-6">
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  اضافة نقاط
-                </h3>
-                <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                  إضافة نقاط جديدة للطلاب
-                </p>
-              </div>
-            </div>
-          </a>
-
-          <a 
-            href="https://www.appsheet.com/start/d2527eab-ea7a-4fc7-89af-170b71cd850d#appName=%D8%A7%D8%AF%D8%A7%D8%B1%D8%A9%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-976645-24-12-26&group=%5B%5D&sort=%5B%5D&table=%D8%A7%D9%84%D9%85%D8%AE%D8%A7%D9%84%D9%81%D8%A7%D8%AA&view=%D8%A7%D9%84%D9%85%D8%AE%D8%A7%D9%84%D9%81%D8%A7%D8%AA"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`block p-6 rounded-2xl transition-all duration-300 group overflow-hidden relative transform hover:-translate-y-1 ${
-              isDark 
-                ? 'bg-gray-800/50 hover:bg-gray-800' 
-                : 'bg-white hover:shadow-lg hover:bg-red-50/30'
-            }`}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/10 ${
-                isDark ? 'text-red-400' : 'text-red-600'
-              }`}>
-                <AlertTriangle className="w-10 h-10" />
-              </div>
-              <div className="mt-6">
-                <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  اضافة مخالفات
-                </h3>
-                <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                  تسجيل المخالفات للطلاب
-                </p>
-              </div>
-            </div>
-          </a>
+          <DashboardCard 
+            title="شهادات التميز" 
+            icon={<Award className="h-6 w-6" />}
+            description="إنشاء وطباعة شهادات للطلاب المتميزين"
+            to="/certificates"
+            className={`${isDark ? 'bg-yellow-900/40 hover:bg-yellow-900/60' : 'bg-yellow-50 hover:bg-yellow-100'} shadow-lg hover:shadow-xl`}
+          />
+          
+          <DashboardCard 
+            title="إنذارات الطلاب" 
+            icon={<AlertTriangle className="h-6 w-6" />}
+            description="متابعة المخالفات والإنذارات للطلاب"
+            to="/students"
+            badge={studentsData ? studentsData.filter(s => s.violations?.length > 0).length : 0}
+            className={`${isDark ? 'bg-red-900/40 hover:bg-red-900/60' : 'bg-red-50 hover:bg-red-100'} shadow-lg hover:shadow-xl`}
+          />
         </div>
       </div>
     </PageLayout>

@@ -50,25 +50,35 @@ router.get('/', async (req, res) => {
     const records = rows
       .filter(row => row[7] && row[7].toString().trim() !== '') 
       .map(row => {
+<<<<<<< HEAD
         // استخدام فهرس العمود الذي وجدناه، أو العودة إلى الإصدار الاحتياطي
         const pointsValue = row[pagesColumnIndex] !== undefined && row[pagesColumnIndex] !== null 
           ? row[pagesColumnIndex].toString() 
           : '0';
           
         console.log('Points value from sheet:', pointsValue);
+=======
+        // تحويل قيمة الصفحات إلى رقم
+        const pagesValue = parseInt(row[3]?.toString() || '0') || 0;
+        console.log('Pages value from sheet:', pagesValue);
+>>>>>>> b3b24f90435c48500ce94437720dee9f324b36a6
         
         return {
           id: row[0]?.toString() || '',
           studentId: row[1]?.toString() || '',
           studentName: row[2]?.toString() || '',
+<<<<<<< HEAD
           pages: pointsValue,
+=======
+          pages: pagesValue,  
+>>>>>>> b3b24f90435c48500ce94437720dee9f324b36a6
           reason: row[4]?.toString() || '',
           teacher: row[5]?.toString() || '',
           dateTime: row[6]?.toString() || '',
           date: row[7]?.toString() || '',
           phoneNumber: row[8]?.toString() || '',
           teacherName: row[9]?.toString() || '',
-          totalPoints: row[10]?.toString() || '',
+          totalPoints: parseInt(row[10]?.toString() || '0') || 0,
           level: row[11]?.toString() || '',
           badge: row[12]?.toString() || ''
         };

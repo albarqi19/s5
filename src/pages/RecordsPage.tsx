@@ -6,17 +6,24 @@ import { Record } from '../types/record';
 import { RecordDetailsModal } from '../components/RecordDetailsModal';
 import { PageLayout } from '../components/layout/PageLayout';
 import { useThemeStore } from '../store/themeStore';
+import { Filter, Plus } from '../components/icons';
+import { AddRecordModal } from '../components/records/AddRecordModal';
 
 export function RecordsPage() {
   const { isDark } = useThemeStore();
   const [showAll, setShowAll] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<Record | null>(null);
   const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [teacherFilter, setTeacherFilter] = useState('');
+  const [studentFilter, setStudentFilter] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
   
   const { 
     data: records = [], 
     isLoading, 
-    error 
+    error,
+    refetch
   } = useApi<Record>('records');
   
   // إضافة تسجيلات تشخيصية للبيانات المستلمة
@@ -35,6 +42,20 @@ export function RecordsPage() {
   const { columns, getRowProps } = useRecordsColumns({
     onRecordClick: (record) => setSelectedRecord(record)
   });
+
+  // استخراج قائمة المعلمين الفريدة من السجلات
+  const uniqueTeachers = useMemo(() => {
+    if (!records?.length) return [];
+    const teachers = Array.from(new Set(records.map(record => record.teacherName)));
+    return teachers.filter(Boolean).sort();
+  }, [records]);
+
+  // استخراج قائمة الطلاب الفريدة من السجلات
+  const uniqueStudents = useMemo(() => {
+    if (!records?.length) return [];
+    const students = Array.from(new Set(records.map(record => record.studentName)));
+    return students.filter(Boolean).sort();
+  }, [records]);
 
   const filteredRecords = useMemo(() => {
     if (!records) return [];
@@ -56,11 +77,25 @@ export function RecordsPage() {
       filtered = filtered.filter(record => new Date(record.date) >= monthAgo);
     }
 
+    // تطبيق فلتر المعلم
+    if (teacherFilter) {
+      filtered = filtered.filter(record => record.teacherName === teacherFilter);
+    }
+
+    // تطبيق فلتر الطالب
+    if (studentFilter) {
+      filtered = filtered.filter(record => record.studentName === studentFilter);
+    }
+
     // ترتيب حسب التاريخ (الأحدث أولاً)
     filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return showAll ? filtered : filtered.slice(0, 20);
-  }, [records, filterDate, showAll]);
+  }, [records, filterDate, showAll, teacherFilter, studentFilter]);
+
+  const handleAddSuccess = () => {
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -91,6 +126,26 @@ export function RecordsPage() {
           }`}>
             سجل النقاط
           </h1>
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700`}
+            >
+              <Plus size={18} />
+              إضافة سجل جديد
+            </button>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                isDark 
+                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Filter size={18} />
+              {showFilters ? 'إخفاء الفلاتر' : 'عرض الفلاتر المتقدمة'}
+            </button>
+          </div>
         </div>
 
         {/* أدوات التصفية */}
@@ -155,6 +210,54 @@ export function RecordsPage() {
               آخر شهر
             </button>
           </div>
+
+          {/* فلاتر متقدمة */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div>
+                <label className={`block mb-2 text-sm font-medium ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  تصفية حسب المعلم
+                </label>
+                <select
+                  value={teacherFilter}
+                  onChange={(e) => setTeacherFilter(e.target.value)}
+                  className={`w-full p-2 rounded-lg border ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <option value="">جميع المعلمين</option>
+                  {uniqueTeachers.map(teacher => (
+                    <option key={teacher} value={teacher}>{teacher}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block mb-2 text-sm font-medium ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  تصفية حسب الطالب
+                </label>
+                <select
+                  value={studentFilter}
+                  onChange={(e) => setStudentFilter(e.target.value)}
+                  className={`w-full p-2 rounded-lg border ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <option value="">جميع الطلاب</option>
+                  {uniqueStudents.map(student => (
+                    <option key={student} value={student}>{student}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={`rounded-xl shadow-lg overflow-hidden ${
@@ -199,6 +302,12 @@ export function RecordsPage() {
           onClose={() => setSelectedRecord(null)}
         />
       )}
+
+      <AddRecordModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleAddSuccess}
+      />
     </PageLayout>
   );
 }

@@ -2,7 +2,7 @@ export interface Record {
   id: string;              // ID
   studentId: string;       // Student ID
   studentName: string;     // Student Name
-  pages: string;          // Pages
+  pages: number;          // Pages (النقاط)
   reason: string;         // السبب
   teacher: string;        // المعلم
   dateTime: string;       // التاريخ والوقت

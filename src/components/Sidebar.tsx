@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, ClipboardList, GraduationCap, BookOpen } from 'lucide-react';
+import { Home, Users, ClipboardList, GraduationCap, BookOpen, Award } from 'lucide-react';
 
 export function Sidebar() {
   return (
@@ -72,6 +72,20 @@ export function Sidebar() {
         >
           <GraduationCap className="w-5 h-5" />
           <span className="font-medium">المعلمين</span>
+        </NavLink>
+
+        <NavLink
+          to="/certificates"
+          className={({ isActive }) =>
+            `flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
+              isActive 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
+                : 'text-gray-600 hover:bg-gray-50'
+            }`
+          }
+        >
+          <Award className="w-5 h-5" />
+          <span className="font-medium">الشهادات</span>
         </NavLink>
       </nav>
     </aside>

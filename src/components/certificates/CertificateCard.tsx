@@ -1,89 +1,65 @@
-import React, { forwardRef, useCallback } from 'react';
+import React from 'react';
+import { useThemeStore } from '../../store/themeStore';
+import { Award } from 'lucide-react';
 import type { Student } from '../../types/student';
-import { toast } from 'react-hot-toast';
-import html2canvas from 'html2canvas';
 
 interface CertificateCardProps {
   student: Student;
+  onClick: () => void;
 }
 
-export const CertificateCard = forwardRef<HTMLDivElement, CertificateCardProps>(
-  ({ student }, ref) => {
-    const currentDate = new Date().toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    return (
-      <div className="flex flex-col items-center space-y-4">
-        <div ref={ref} className="w-[800px] h-[600px] bg-white relative overflow-hidden">
-          {/* خلفية مزخرفة */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 to-amber-100/30" />
-          
-          {/* حدود الشهادة */}
-          <div className="absolute inset-4 border-8 border-double border-amber-600/20 rounded-lg" />
-          <div className="absolute inset-6 border-2 border-amber-600/20 rounded-lg" />
-
-          {/* المحتوى */}
-          <div className="relative h-full p-8 flex flex-col">
-            {/* العنوان */}
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-amber-700">شهادة شكر وتقدير</h1>
-            </div>
-
-            {/* نص الشهادة */}
-            <div className="flex-1 flex flex-col justify-between">
-              <div className="space-y-3">
-                <p className="text-xl text-gray-800 leading-relaxed text-center">
-                  يسرنا أن نقدم شهادة الشكر والتقدير للطالب المتميز
-                </p>
-                
-                <h2 className="text-2xl font-bold text-amber-800 text-center py-2">
-                  {student.studentName}
-                </h2>
-
-                {/* تفاصيل الطالب */}
-                <div className="grid grid-cols-2 gap-3 mx-auto max-w-xl text-right bg-amber-50/50 rounded-lg p-4 my-2">
-                  <div className="border-r-2 border-amber-200 pr-3">
-                    <span className="text-gray-600 text-sm">الحلقة:</span>
-                    <span className="text-amber-800 font-bold mr-2 text-sm">{student.level}</span>
-                  </div>
-                  <div className="pr-3">
-                    <span className="text-gray-600 text-sm">المستوى الحالي:</span>
-                    <span className="text-amber-800 font-bold mr-2 text-sm">{student.parts}</span>
-                  </div>
-                  <div className="border-r-2 border-amber-200 pr-3">
-                    <span className="text-gray-600 text-sm">عدد النقاط:</span>
-                    <span className="text-amber-800 font-bold mr-2 text-sm">{student.points} نقطة</span>
-                  </div>
-                  <div className="pr-3">
-                    <span className="text-gray-600 text-sm">حالة المخالفات:</span>
-                    <span className="text-green-600 font-bold mr-2 text-sm">لا توجد مخالفات</span>
-                  </div>
-                </div>
-
-                <p className="text-base text-gray-800 leading-relaxed text-center px-8">
-                  وذلك لتميزه في حفظ وتلاوة كتاب الله، وإتمامه للمقرر بكل إتقان وإخلاص.
-                  حيث أظهر التزاماً ملحوظاً في الحضور والمشاركة، وتفوقاً في الأداء والحفظ.
-                </p>
-
-                <p className="text-sm text-gray-700 text-center px-8">
-                  نسأل الله أن يبارك له في حفظه، وأن يجعل القرآن ربيع قلبه ونور صدره،
-                  وأن يرفع درجاته في الدنيا والآخرة.
-                </p>
-              </div>
-
-              {/* التوقيع والتاريخ */}
-              <div className="flex flex-col items-center mt-4">
-                <p className="text-base font-bold text-gray-800 mb-2">{currentDate} :تحريراً في</p>
-                <p className="text-sm font-bold text-gray-800 mb-2">إدارة حلقات المسجد</p>
-                <img src="/mosque-logo.png" alt="شعار المسجد" className="h-16 object-contain" />
-              </div>
-            </div>
-          </div>
+export function CertificateCard({ student, onClick }: CertificateCardProps) {
+  const { isDark } = useThemeStore();
+  
+  const getPointsColor = () => {
+    if (student.points >= 90) return 'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900';
+    if (student.points >= 80) return 'bg-gradient-to-r from-green-300 to-green-500 text-green-900';
+    if (student.points >= 70) return 'bg-gradient-to-r from-blue-300 to-blue-500 text-blue-900';
+    return 'bg-gradient-to-r from-gray-300 to-gray-500 text-gray-900';
+  };
+  
+  return (
+    <div
+      onClick={onClick}
+      className={`p-6 rounded-xl shadow-lg cursor-pointer transform hover:scale-105 transition-all duration-300 ${
+        isDark ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{student.studentName}</h3>
+        <div className={`p-2 rounded-full ${
+          isDark ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-100 text-blue-700'
+        }`}>
+          <Award size={20} />
         </div>
       </div>
-    );
-  }
-);
+      
+      <div className="mt-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>الحلقة:</span>
+          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{student.level}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>المستوى:</span>
+          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{student.parts}</span>
+        </div>
+      </div>
+      
+      <div className="mt-6 flex justify-center">
+        <div className={`px-4 py-2 rounded-full text-center font-bold ${getPointsColor()}`}>
+          {student.points} نقطة
+        </div>
+      </div>
+      
+      <div className="mt-6 flex justify-center">
+        <button className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+          isDark ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900' 
+                : 'bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800'
+        } transition-colors shadow-md`}>
+          <Award size={18} />
+          عرض الشهادة
+        </button>
+      </div>
+    </div>
+  );
+}
