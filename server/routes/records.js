@@ -116,7 +116,7 @@ router.get('/find-empty-rows', async (req, res) => {
   }
 });
 
-// تحديث صف محدد في ورقة Record Data (للمخالفات) - تم تعديله لاستخدام append
+// تحديث صف محدد في ورقة Record Data (للمخالفات)
 router.post('/update-row', async (req, res) => {
   try {
     const { rowIndex, violationData } = req.body;
@@ -172,38 +172,80 @@ router.post('/update-row', async (req, res) => {
     console.log('Prepared values for sheet:', values);
     
     try {
-      // تصحيح تنسيق النطاق - استخدام "Record Data!A:J" بدلاً من استخدام كلمة append
-      const appendResponse = await sheets.spreadsheets.values.append({
+      // 1. الحصول على كل البيانات من ورقة Record Data للبحث عن صف فارغ
+      console.log('Searching for empty row in Record Data sheet...');
+      const dataResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Record Data!A:J', // تنسيق نطاق صحيح بدون كلمة append
+        range: 'Record Data!A:A',  // نحصل فقط على العمود A لنرى أين توجد الخلايا الفارغة
+        valueRenderOption: 'FORMATTED_VALUE'
+      });
+      
+      const columnAValues = dataResponse.data.values || [];
+      let emptyRowIndex = -1;
+      
+      // البحث عن أول صف فارغ (القيمة فارغة في العمود A)
+      for (let i = 0; i < columnAValues.length; i++) {
+        // إذا كان الصف غير موجود أو فارغًا
+        if (!columnAValues[i] || !columnAValues[i][0] || columnAValues[i][0].toString().trim() === '') {
+          // الصفوف في Google Sheets تبدأ من 1، ونضيف 1 لأن الصف 1 هو للعناوين
+          emptyRowIndex = i + 1; 
+          break;
+        }
+      }
+      
+      // إذا لم نجد صفاً فارغاً، نضيف في نهاية الجدول
+      if (emptyRowIndex === -1) {
+        emptyRowIndex = columnAValues.length + 1; // الصف التالي بعد آخر صف
+      }
+      
+      console.log(`Found empty row at index: ${emptyRowIndex}`);
+      
+      // 2. استخدام update لإدراج البيانات في الصف الفارغ المحدد
+      const updateResponse = await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `Record Data!A${emptyRowIndex}:J${emptyRowIndex}`,
         valueInputOption: 'USER_ENTERED',
-        insertDataOption: 'INSERT_ROWS',
         resource: {
           values: [values]
         }
       });
       
-      console.log('Successfully appended data. Response:', JSON.stringify(appendResponse.data, null, 2));
+      console.log('Successfully updated row in Record Data. Response:', JSON.stringify(updateResponse.data, null, 2));
       
       res.json({
         message: 'تم تسجيل بيانات المخالفة بنجاح',
         updatedData: values,
-        sheetResponse: appendResponse.data
+        rowIndex: emptyRowIndex,
+        sheetResponse: updateResponse.data
       });
-    } catch (appendError) {
-      console.error('Error in sheets.spreadsheets.values.append:', appendError);
       
-      // معلومات تفصيلية عن الخطأ للمساعدة في التشخيص
-      let errorDetails = appendError.message;
-      if (appendError.response) {
-        errorDetails += ` | Status: ${appendError.response.status}`;
-        if (appendError.response.data && appendError.response.data.error) {
-          const error = appendError.response.data.error;
-          errorDetails += ` | Reason: ${error.message || error.reason || JSON.stringify(error)}`;
-        }
+    } catch (updateError) {
+      console.error('Error updating Record Data sheet:', updateError);
+      
+      // في حالة فشل التحديث، نحاول استخدام ورقة "المخالفات" كخطة بديلة
+      try {
+        console.log('Trying to append to المخالفات sheet as fallback...');
+        const appendResponse = await sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range: 'المخالفات!A:J',
+          valueInputOption: 'USER_ENTERED',
+          insertDataOption: 'INSERT_ROWS',
+          resource: {
+            values: [values]
+          }
+        });
+        
+        console.log('Successfully appended data to المخالفات sheet. Response:', JSON.stringify(appendResponse.data, null, 2));
+        
+        res.json({
+          message: 'تم تسجيل بيانات المخالفة بنجاح في ورقة المخالفات',
+          updatedData: values,
+          sheetResponse: appendResponse.data
+        });
+      } catch (appendError) {
+        console.error('Error in sheets.spreadsheets.values.append to المخالفات sheet:', appendError);
+        throw new Error(`فشلت إضافة البيانات بسبب حماية الخلايا في جدول البيانات. يرجى التواصل مع مالك جدول البيانات لإزالة الحماية أو منح صلاحيات الكتابة.`);
       }
-      
-      throw new Error(`Failed to append data to spreadsheet: ${errorDetails}`);
     }
   } catch (error) {
     console.error('Error in /update-row route:', error);

@@ -79,10 +79,10 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
       const timeString = now.toLocaleTimeString('ar-SA');
       const dateString = now.toLocaleDateString('ar-SA');
       
-      // 1. إضافة المخالفة إلى جدول Record Data 
+      // إضافة المخالفة إلى جدول البيانات فقط (بدون تعديل نقاط الطالب مباشرة)
       try {
         console.log('Sending violation data:', {
-          rowIndex: "append",
+          rowIndex: "append", // هذه القيمة سيتم تجاهلها وسيبحث الخادم عن صف فارغ
           violationData: {
             id: student.id,
             studentId: student.id,
@@ -97,42 +97,33 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
           }
         });
         
-        // تسجيل المخالفة - نستخدم rowIndex لأن الخادم الآن سيتجاهله ويستخدم 'append' دائمًا
         const response = await axios.post(`${SERVER_CONFIG.baseUrl}/api/records/update-row`, {
-          rowIndex: "append", // هذه القيمة لن تُستخدم لكننا نرسلها للتوافق مع الواجهة السابقة
+          rowIndex: "append", 
           violationData: {
             id: student.id,
             studentId: student.id,
             studentName: student.studentName,
-            points: points.toString(), // تحويل الرقم إلى نص
+            points: points.toString(),
             reason: violationTypeText + (formData.details ? ` - ${formData.details}` : ''),
-            teacherId: '', // يمكن إضافة معرف المعلم لاحقاً
+            teacherId: '',
             time: timeString,
             date: dateString,
             phoneNumber: student.phone || '',
-            teacherName: '', // يمكن إضافة اسم المعلم لاحقاً
+            teacherName: '',
           }
         });
         
         console.log('Server response:', response.data);
         showToast('تم تسجيل المخالفة بنجاح', 'success');
+        
+        // لم نعد بحاجة إلى تحديث نقاط الطالب يدويًا لأن المعادلة في الجدول ستقوم بذلك تلقائيًا
+        
+        onSuccess();
+        onClose();
       } catch (error) {
         console.error('Error updating Record Data:', error);
         showToast('حدث خطأ في تسجيل المخالفة في جدول البيانات', 'error');
-        return;
       }
-
-      // 2. تحديث نقاط الطالب بخصم النقاط
-      const updatedStudent = {
-        ...student,
-        points: Math.max(0, student.points + points), // نقوم بإضافة النقاط (سالبة) مع التأكد من عدم هبوط النقاط تحت الصفر
-        violations: (student.violations || 0) + 1
-      };
-      
-      await axios.put(`${SERVER_CONFIG.baseUrl}/api/students/${student.id}`, updatedStudent);
-      
-      onSuccess();
-      onClose();
     } catch (error) {
       console.error('Error adding violation:', error);
       showToast('حدث خطأ أثناء تسجيل المخالفة', 'error');
