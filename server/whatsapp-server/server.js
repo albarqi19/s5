@@ -1,201 +1,455 @@
 import express from 'express';
-import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth, MessageMedia } = pkg;
+import { Client } from 'whatsapp-web.js';
 import qrcode from 'qrcode';
-import fs from 'fs';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import https from 'https';
+import fs from 'fs-extra';
+import fetch from 'node-fetch';
 
+// تهيئة المتغيرات البيئية
+dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// تعريف مسار ملف البيانات
+const DATA_FILE = path.join(__dirname, 'whatsapp_data.json');
 
-let lastQR = '';
-
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true
-    }
-});
-
-// إنشاء مجلد public إذا لم يكن موجوداً
-if (!fs.existsSync(path.join(__dirname, 'public'))) {
-    fs.mkdirSync(path.join(__dirname, 'public'));
+// دالة تسجيل السجلات
+function logToFile(message, type = 'info') {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] [${type}] ${message}\n`;
+    console.log(logMessage);
+    fs.appendFileSync('whatsapp.log', logMessage);
 }
 
-// إنشاء صفحة HTML
-const htmlContent = `
-<!DOCTYPE html>
-<html dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>WhatsApp QR Code</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #qrcode {
-            margin: 20px 0;
-        }
-        .status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .connected {
-            background-color: #dcf8c6;
-            color: #075e54;
-        }
-        .waiting {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>مسح رمز QR</h1>
-        <div id="qrcode"></div>
-        <div id="status" class="status waiting">في انتظار المسح...</div>
-    </div>
-    <script>
-        function checkStatus() {
-            fetch('/status')
-                .then(res => res.json())
-                .then(data => {
-                    const statusDiv = document.getElementById('status');
-                    if (data.connected) {
-                        statusDiv.textContent = 'متصل!';
-                        statusDiv.className = 'status connected';
-                    }
-                });
-        }
-
-        function updateQR() {
-            fetch('/qr')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.qr) {
-                        document.getElementById('qrcode').innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
-                    }
-                });
-        }
-
-        // تحديث كل 5 ثواني
-        setInterval(() => {
-            updateQR();
-            checkStatus();
-        }, 5000);
-
-        // تحديث أول مرة
-        updateQR();
-        checkStatus();
-    </script>
-</body>
-</html>
-`;
-
-fs.writeFileSync(path.join(__dirname, 'public', 'index.html'), htmlContent);
-
-client.on('qr', async (qr) => {
+// دالة تحميل البيانات
+async function loadData() {
     try {
-        lastQR = await qrcode.toDataURL(qr);
-        console.log('New QR Code received');
-    } catch (err) {
-        console.error('Error generating QR code:', err);
+        if (await fs.pathExists(DATA_FILE)) {
+            const data = await fs.readJson(DATA_FILE);
+            whatsappClients.clear();
+            
+            for (const [id, savedData] of Object.entries(data)) {
+                const client = new Client({
+                    puppeteer: {
+                        args: ['--no-sandbox', '--disable-setuid-sandbox']
+                    }
+                });
+
+                // إعادة تعيين مستمعي الأحداث
+                setupClientEvents(client, id);
+
+                whatsappClients.set(id, {
+                    client,
+                    status: 'disconnected',
+                    webhooks: savedData.webhooks || [],
+                    createdAt: new Date(savedData.createdAt)
+                });
+
+                // إعادة الاتصال
+                try {
+                    await client.initialize();
+                } catch (error) {
+                    logToFile(`Error initializing client ${id}: ${error.message}`, 'error');
+                }
+            }
+            logToFile(`Loaded ${whatsappClients.size} clients from storage`, 'info');
+        }
+    } catch (error) {
+        logToFile(`Error loading data: ${error.message}`, 'error');
     }
-});
+}
 
-client.on('ready', () => {
-    console.log('WhatsApp client is ready!');
-    lastQR = '';
-});
+// دالة حفظ البيانات
+async function saveData() {
+    try {
+        const data = {};
+        for (const [id, clientData] of whatsappClients.entries()) {
+            data[id] = {
+                webhooks: clientData.webhooks || [],
+                createdAt: clientData.createdAt,
+                status: clientData.status
+            };
+        }
+        await fs.writeJson(DATA_FILE, data, { spaces: 2 });
+        logToFile('Data saved successfully', 'info');
+    } catch (error) {
+        logToFile(`Error saving data: ${error.message}`, 'error');
+    }
+}
 
-// نقطة نهاية لحالة الاتصال
-app.get('/status', (req, res) => {
-    res.json({ connected: !!client.info });
-});
+// دالة إعداد أحداث العميل
+function setupClientEvents(client, clientId) {
+    client.on('qr', async (qrCode) => {
+        try {
+            const qrUrl = await qrcode.toDataURL(qrCode);
+            const clientData = whatsappClients.get(clientId);
+            if (clientData) {
+                clientData.qr = qrUrl;
+                clientData.status = 'qr_ready';
+                whatsappClients.set(clientId, clientData);
+                await saveData();
+            }
+            logToFile(`QR Code generated for client ${clientId}`, 'qr');
+        } catch (error) {
+            logToFile(`QR Error: ${error.message}`, 'error');
+        }
+    });
 
-// نقطة نهاية لرمز QR
-app.get('/qr', (req, res) => {
-    if (lastQR) {
-        res.json({ qr: lastQR });
+    client.on('ready', async () => {
+        logToFile(`Client ${clientId} is ready!`, 'status');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData) {
+            clientData.status = 'ready';
+            whatsappClients.set(clientId, clientData);
+            await saveData();
+        }
+    });
+
+    client.on('authenticated', async () => {
+        logToFile(`Client ${clientId} authenticated`, 'status');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData) {
+            clientData.status = 'authenticated';
+            whatsappClients.set(clientId, clientData);
+            await saveData();
+        }
+    });
+
+    client.on('auth_failure', async (msg) => {
+        logToFile(`Client ${clientId} auth failure: ${msg}`, 'error');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData) {
+            clientData.status = 'auth_failure';
+            whatsappClients.set(clientId, clientData);
+            await saveData();
+        }
+    });
+
+    // تابع دالة setupClientEvents
+    client.on('message', async (message) => {
+        logToFile(`New message received for client ${clientId}: ${JSON.stringify(message)}`, 'message');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData && clientData.webhooks) {
+            for (const webhook of clientData.webhooks) {
+                if (webhook.events.includes('message')) {
+                    try {
+                        const webhookData = {
+                            type: 'message',
+                            clientId,
+                            data: {
+                                from: message.from,
+                                body: message.body,
+                                timestamp: message.timestamp,
+                                type: message.type
+                            }
+                        };
+                        
+                        logToFile(`Sending webhook data: ${JSON.stringify(webhookData)}`, 'webhook');
+                        
+                        const response = await fetch(webhook.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(webhookData)
+                        });
+                        
+                        const responseText = await response.text();
+                        logToFile(`Webhook response: ${response.status} ${responseText}`, 'webhook');
+                    } catch (error) {
+                        logToFile(`Webhook error: ${error.message}`, 'error');
+                    }
+                }
+            }
+        }
+    });
+
+    client.on('message_ack', async (message, ack) => {
+        logToFile(`Message ACK received for client ${clientId}`, 'ack');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData && clientData.webhooks) {
+            for (const webhook of clientData.webhooks) {
+                if (webhook.events.includes('message_ack')) {
+                    try {
+                        const webhookData = {
+                            type: 'message_ack',
+                            clientId,
+                            data: {
+                                messageId: message.id,
+                                ack,
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+
+                        const response = await fetch(webhook.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(webhookData)
+                        });
+                        
+                        const responseText = await response.text();
+                        logToFile(`Webhook ACK response: ${response.status} ${responseText}`, 'webhook');
+                    } catch (error) {
+                        logToFile(`Webhook ACK error: ${error.message}`, 'error');
+                    }
+                }
+            }
+        }
+    });
+
+    client.on('disconnected', async () => {
+        logToFile(`Client ${clientId} disconnected`, 'status');
+        const clientData = whatsappClients.get(clientId);
+        if (clientData) {
+            clientData.status = 'disconnected';
+            whatsappClients.set(clientId, clientData);
+            await saveData();
+        }
+    });
+}
+
+// إنشاء تطبيق Express
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// تخزين عملاء WhatsApp
+const whatsappClients = new Map();
+
+// المصادقة الأساسية
+const checkAuth = (req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth) {
+        res.setHeader('WWW-Authenticate', 'Basic');
+        return res.status(401).send('Authentication required');
+    }
+    
+    const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+    const username = credentials[0];
+    const password = credentials[1];
+    
+    if (username === process.env.AUTH_USERNAME && password === process.env.AUTH_PASSWORD) {
+        next();
     } else {
-        res.status(404).json({ error: 'No QR code available' });
+        res.setHeader('WWW-Authenticate', 'Basic');
+        return res.status(401).send('Invalid credentials');
     }
+};
+
+// المسارات الرئيسية
+app.get('/', (req, res) => {
+    res.redirect('/dashboard');
 });
 
-app.post('/send-certificate', async (req, res) => {
+app.get('/dashboard', checkAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+});
+
+// API مسارات
+app.post('/api/whatsapp/create', checkAuth, async (req, res) => {
     try {
-        const { phoneNumber, imageData, type } = req.body;
-
-        if (!phoneNumber || !imageData) {
-            return res.status(400).json({ error: 'Missing phone number or image data' });
-        }
-
-        if (!client.info) {
-            return res.status(500).json({ error: 'WhatsApp client not ready. Please scan the QR code first.' });
-        }
-
-        // تنسيق رقم الهاتف
-        let formattedNumber = phoneNumber.toString().trim();
-        if (!formattedNumber.endsWith('@c.us')) {
-            formattedNumber = `${formattedNumber}@c.us`;
-        }
-
-        // إنشاء كائن MessageMedia من البيانات
-        const media = new MessageMedia('image/png', imageData.split(',')[1]);
-
-        // إرسال الصورة
-        const chat = await client.getChatById(formattedNumber);
-        await chat.sendMessage(media, {
-            caption: type === 'card' ? 'هذه بطاقتك من برنامج نافس،بمجمع سعيد رداد القرآني' : 'شهادتك من برنامج نافس،بمجمع سعيد رداد القرآني'
+        const clientId = Date.now().toString();
+        const client = new Client({
+            puppeteer: {
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            }
         });
 
-        res.json({ success: true });
+        setupClientEvents(client, clientId);
+
+        whatsappClients.set(clientId, { 
+            client,
+            status: 'initializing',
+            webhooks: [],
+            createdAt: new Date()
+        });
+
+        await saveData();
+        await client.initialize();
+        res.json({ clientId });
     } catch (error) {
-        console.error('Error:', error);
+        logToFile(`Error creating client: ${error.message}`, 'error');
         res.status(500).json({ error: error.message });
     }
 });
 
-const port = 3002;
-
-// قراءة شهادات SSL
-const privateKey = fs.readFileSync(path.join(__dirname, 'certs', 'private.key'));
-const certificate = fs.readFileSync(path.join(__dirname, 'certs', 'certificate.crt'));
-const credentials = { key: privateKey, cert: certificate };
-
-// إنشاء خادم HTTPS
-const httpsServer = https.createServer(credentials, app);
-
-console.log('Starting WhatsApp client...');
-client.initialize().catch(err => {
-    console.error('Failed to initialize WhatsApp client:', err);
+app.get('/api/whatsapp/status/:clientId', checkAuth, (req, res) => {
+    try {
+        const clientData = whatsappClients.get(req.params.clientId);
+        if (!clientData) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+        res.json({
+            status: clientData.status,
+            qr: clientData.qr,
+            phoneNumber: clientData.client.info ? clientData.client.info.wid.user : null
+        });
+    } catch (error) {
+        logToFile(`Error getting status: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
 });
 
-httpsServer.listen(port, () => {
-    console.log(`HTTPS Server running on port ${port}`);
+app.get('/api/whatsapp/clients', checkAuth, (req, res) => {
+    try {
+        const clients = Array.from(whatsappClients.entries()).map(([id, data]) => ({
+            id,
+            status: data.status,
+            phoneNumber: data.client.info ? data.client.info.wid.user : 'جاري التحميل...',
+            webhooks: data.webhooks || [],
+            createdAt: data.createdAt
+        }));
+        res.json(clients);
+    } catch (error) {
+        logToFile(`Error getting clients: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
 });
+
+app.delete('/api/whatsapp/client/:clientId', checkAuth, async (req, res) => {
+    try {
+        const clientData = whatsappClients.get(req.params.clientId);
+        if (!clientData) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        if (clientData.client) {
+            try {
+                await clientData.client.destroy();
+            } catch (destroyError) {
+                logToFile(`Error destroying client: ${destroyError.message}`, 'error');
+            }
+        }
+
+        whatsappClients.delete(req.params.clientId);
+        await saveData();
+        res.json({ success: true });
+    } catch (error) {
+        logToFile(`Error deleting client: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/whatsapp/client/:clientId/webhook', checkAuth, async (req, res) => {
+    try {
+        const clientData = whatsappClients.get(req.params.clientId);
+        if (!clientData) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        const { url, events } = req.body;
+        if (!url || !events || !Array.isArray(events)) {
+            return res.status(400).json({ error: 'Invalid webhook data' });
+        }
+
+        const webhook = {
+            id: Date.now().toString(),
+            url,
+            events
+        };
+
+        clientData.webhooks = clientData.webhooks || [];
+        clientData.webhooks.push(webhook);
+        whatsappClients.set(req.params.clientId, clientData);
+        await saveData();
+
+        logToFile(`Webhook added for client ${req.params.clientId}: ${url}`, 'webhook');
+        res.json(webhook);
+    } catch (error) {
+        logToFile(`Error adding webhook: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/whatsapp/client/:clientId/webhooks', checkAuth, (req, res) => {
+    try {
+        const clientData = whatsappClients.get(req.params.clientId);
+        if (!clientData) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        res.json(clientData.webhooks || []);
+    } catch (error) {
+        logToFile(`Error getting webhooks: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/whatsapp/client/:clientId/webhook/:webhookId', checkAuth, async (req, res) => {
+    try {
+        const clientData = whatsappClients.get(req.params.clientId);
+        if (!clientData) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        const webhookIndex = clientData.webhooks?.findIndex(w => w.id === req.params.webhookId);
+        if (webhookIndex === -1) {
+            return res.status(404).json({ error: 'Webhook not found' });
+        }
+
+        clientData.webhooks.splice(webhookIndex, 1);
+        whatsappClients.set(req.params.clientId, clientData);
+        await saveData();
+
+        logToFile(`Webhook deleted for client ${req.params.clientId}`, 'webhook');
+        res.json({ success: true });
+    } catch (error) {
+        logToFile(`Error deleting webhook: ${error.message}`, 'error');
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// تشغيل السيرفر
+const PORT = process.env.PORT || 3004;
+const startServer = async () => {
+    try {
+        // تحميل البيانات عند بدء التشغيل
+        await loadData();
+        
+        app.listen(PORT, () => {
+            logToFile(`Server running on port ${PORT}`, 'server');
+        }).on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                logToFile(`Port ${PORT} is already in use. Please try another port or free up this port.`, 'error');
+                process.exit(1);
+            } else {
+                logToFile(`Server error: ${err.message}`, 'error');
+            }
+        });
+    } catch (error) {
+        logToFile(`Failed to start server: ${error.message}`, 'error');
+        process.exit(1);
+    }
+};
+
+// معالجة الإغلاق بأمان
+process.on('SIGTERM', async () => {
+    logToFile('SIGTERM received. Closing all WhatsApp clients...', 'server');
+    await saveData();
+    for (const [clientId, clientData] of whatsappClients.entries()) {
+        try {
+            await clientData.client.destroy();
+        } catch (error) {
+            logToFile(`Error destroying client ${clientId}: ${error.message}`, 'error');
+        }
+    }
+    process.exit(0);
+});
+
+process.on('uncaughtException', async (err) => {
+    logToFile(`Uncaught Exception: ${err.message}`, 'error');
+    await saveData();
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+    logToFile(`Unhandled Rejection at: ${promise}, reason: ${reason}`, 'error');
+    await saveData();
+});
+
+startServer();

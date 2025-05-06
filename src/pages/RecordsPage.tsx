@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DataTable } from '../components/DataTable';
 import { useRecordsColumns } from '../hooks/useRecordsColumns';
 import { useApi } from '../hooks/api/useApi';
@@ -25,6 +25,19 @@ export function RecordsPage() {
     error,
     refetch
   } = useApi<Record>('records');
+  
+  // إضافة تسجيلات تشخيصية للبيانات المستلمة
+  useEffect(() => {
+    if (records && records.length > 0) {
+      console.log('Records received in frontend:', records.length);
+      console.log('First record example:', records[0]);
+      console.log('Pages value in first record:', records[0]?.pages);
+      
+      // التحقق من السجلات ذات قيمة pages فارغة
+      const emptyPagesRecords = records.filter(record => !record.pages);
+      console.log('Records with empty pages:', emptyPagesRecords.length);
+    }
+  }, [records]);
 
   const { columns, getRowProps } = useRecordsColumns({
     onRecordClick: (record) => setSelectedRecord(record)

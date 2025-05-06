@@ -6,6 +6,28 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     console.log('Fetching records data...');
+    
+    // أولاً: الحصول على رؤوس الأعمدة للتعرف على موقع عمود "Pages"
+    const headerResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Record Data!A1:M1',
+      valueRenderOption: 'FORMATTED_VALUE'
+    });
+    
+    const headers = headerResponse.data.values ? headerResponse.data.values[0] : [];
+    console.log('Sheet headers:', headers);
+    
+    // البحث عن فهرس عمود النقاط/الصفحات
+    let pagesColumnIndex = 3; // الافتراضي هو العمود الرابع (index 3)
+    for (let i = 0; i < headers.length; i++) {
+      if (headers[i] === 'Pages') {
+        pagesColumnIndex = i;
+        console.log('Found Pages column at index:', pagesColumnIndex);
+        break;
+      }
+    }
+    
+    // الآن نقوم بجلب البيانات
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Record Data!A2:M',
@@ -14,11 +36,25 @@ router.get('/', async (req, res) => {
     
     const rows = response.data.values || [];
     console.log('Processing records data...');
+    
+    // طباعة البيانات الخام من الورقة للتحقق
+    console.log('Raw data from sheet (first row):', rows.length > 0 ? rows[0] : 'No data');
+    
+    if (rows.length > 0) {
+      console.log('Pages column (index ' + pagesColumnIndex + ') sample values:');
+      for (let i = 0; i < Math.min(5, rows.length); i++) {
+        console.log(`Row ${i + 1}: [${rows[i][pagesColumnIndex]}]`);
+      }
+    }
+    
     const records = rows
       .filter(row => row[7] && row[7].toString().trim() !== '') 
       .map(row => {
+        // استخدام فهرس العمود الذي وجدناه بداية
+        const pagesColumnToUse = pagesColumnIndex;
+        
         // تحويل قيمة النقاط إلى رقم بشكل صحيح
-        const pagesValue = parseInt(row[3]?.toString() || '0') || 0;
+        const pagesValue = parseInt(row[pagesColumnToUse]?.toString() || '0') || 0;
         console.log('Points value from sheet:', pagesValue);
         
         // تحويل قيمة إجمالي النقاط إلى رقم بشكل صحيح (إذا كانت موجودة)
@@ -44,6 +80,13 @@ router.get('/', async (req, res) => {
           badge: row[12]?.toString() || ''
         };
       });
+
+    // نطبع البيانات المعالجة قبل إرسالها
+    if (records.length > 0) {
+      console.log('Processed data example:');
+      console.log('First record:', JSON.stringify(records[0]));
+      console.log('Pages value in first record:', records[0].pages);
+    }
 
     console.log('Sending records data:', records.length, 'records');
     res.json(records);
@@ -129,7 +172,7 @@ router.post('/update-row', async (req, res) => {
     console.log('Prepared values for sheet:', values);
     
     try {
-      // تصحيح تنسيق النطاق - استخدام "Record Data!A:J" بدلاً من استخدام كلمة "append" في النطاق
+      // تصحيح تنسيق النطاق - استخدام "Record Data!A:J" بدلاً من استخدام كلمة append
       const appendResponse = await sheets.spreadsheets.values.append({
         spreadsheetId,
         range: 'Record Data!A:J', // تنسيق نطاق صحيح بدون كلمة append

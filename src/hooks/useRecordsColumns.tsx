@@ -31,13 +31,17 @@ export function useRecordsColumns({ onRecordClick }: UseRecordsColumnsProps) {
     {
       accessorKey: 'pages',
       header: 'النقاط',
-      cell: ({ row }) => (
-        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${
-          isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {row.original.pages}
-        </span>
-      )
+      cell: ({ row }) => {
+        console.log('Pages value:', row.original.pages);
+        console.log('Full record:', row.original);
+        return (
+          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${
+            isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-800'
+          }`}>
+            {row.original.pages}
+          </span>
+        );
+      }
     },
     {
       accessorKey: 'reason',
