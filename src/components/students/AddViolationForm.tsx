@@ -11,14 +11,19 @@ interface AddViolationFormProps {
   onSuccess: () => void;
 }
 
+// تحديث قائمة أنواع المخالفات (حذف عدم حل الواجب)
 const VIOLATION_TYPES = [
   { id: 'absence', label: 'غياب', points: -5 },
   { id: 'late', label: 'تأخر', points: -3 },
   { id: 'misbehavior', label: 'سوء سلوك', points: -10 },
-  { id: 'homework', label: 'عدم حل الواجب', points: -5 },
   { id: 'disrespect', label: 'الاساءة', points: -25 },
   { id: 'other', label: 'أخرى', points: -1 }
 ];
+
+// دالة لتوليد رقم عشوائي
+const generateRandomId = () => {
+  return Math.floor(Math.random() * 900000000) + 100000000; // توليد رقم من 9 أرقام
+};
 
 export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) {
   const { isDark } = useThemeStore();
@@ -31,7 +36,8 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
     studentId: '',
     violationType: '',
     customPoints: '-5',
-    details: ''
+    details: '',
+    otherReason: '' // إضافة حقل سبب آخر
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -60,7 +66,7 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
 
       // تحديد النقاط بناءً على نوع المخالفة
       let points = parseInt(formData.customPoints);
-      let violationTypeText = 'أخرى';
+      let violationTypeText = formData.otherReason || 'أخرى'; // استخدام السبب الآخر إذا كان موجودًا
       
       if (formData.violationType !== 'other') {
         const violationType = VIOLATION_TYPES.find(type => type.id === formData.violationType);
@@ -75,19 +81,32 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
         points = -5; // قيمة افتراضية إذا كانت النقاط غير صالحة
       }
 
+      // توليد رقم عشوائي للمعرف
+      const recordId = generateRandomId().toString();
+
+      // تنسيق الوقت والتاريخ باللغة الإنجليزية والتاريخ الميلادي
       const now = new Date();
-      const timeString = now.toLocaleTimeString('ar-SA');
-      const dateString = now.toLocaleDateString('ar-SA');
+      
+      // تنسيق الوقت: HH:MM:SS (24-hour format)
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      
+      // تنسيق التاريخ: M/D/YYYY
+      const dateString = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
       
       // إضافة المخالفة إلى جدول البيانات فقط (بدون تعديل نقاط الطالب مباشرة)
       try {
         console.log('Sending violation data:', {
-          rowIndex: "append", // هذه القيمة سيتم تجاهلها وسيبحث الخادم عن صف فارغ
+          rowIndex: "append",
           violationData: {
-            id: student.id,
+            id: recordId, // استخدام معرف عشوائي
             studentId: student.id,
             studentName: student.studentName,
-            points: points.toString(), // تحويل الرقم إلى نص
+            points: points.toString(),
             reason: violationTypeText + (formData.details ? ` - ${formData.details}` : ''),
             teacherId: '', 
             time: timeString,
@@ -100,7 +119,7 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
         const response = await axios.post(`${SERVER_CONFIG.baseUrl}/api/records/update-row`, {
           rowIndex: "append", 
           violationData: {
-            id: student.id,
+            id: recordId, // استخدام معرف عشوائي
             studentId: student.id,
             studentName: student.studentName,
             points: points.toString(),
@@ -115,8 +134,6 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
         
         console.log('Server response:', response.data);
         showToast('تم تسجيل المخالفة بنجاح', 'success');
-        
-        // لم نعد بحاجة إلى تحديث نقاط الطالب يدويًا لأن المعادلة في الجدول ستقوم بذلك تلقائيًا
         
         onSuccess();
         onClose();
@@ -193,28 +210,50 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
         </div>
 
         {formData.violationType === 'other' && (
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              النقاط المخصومة
-            </label>
-            <input
-              type="number"
-              name="customPoints"
-              value={formData.customPoints}
-              onChange={handleChange}
-              max="0"
-              className={`w-full p-2 rounded-lg border ${
-                isDark 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300'
-              }`}
-              required
-              disabled={isSubmitting}
-            />
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              أدخل قيمة سالبة للنقاط المخصومة
-            </p>
-          </div>
+          <>
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                سبب المخالفة
+              </label>
+              <input
+                type="text"
+                name="otherReason"
+                value={formData.otherReason}
+                onChange={handleChange}
+                placeholder="أدخل سبب المخالفة"
+                className={`w-full p-2 rounded-lg border ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300'
+                }`}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                النقاط المخصومة
+              </label>
+              <input
+                type="number"
+                name="customPoints"
+                value={formData.customPoints}
+                onChange={handleChange}
+                max="0"
+                className={`w-full p-2 rounded-lg border ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300'
+                }`}
+                required
+                disabled={isSubmitting}
+              />
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                أدخل قيمة سالبة للنقاط المخصومة
+              </p>
+            </div>
+          </>
         )}
 
         <div>
@@ -242,8 +281,13 @@ export function AddViolationForm({ onClose, onSuccess }: AddViolationFormProps) 
               سيتم خصم {formData.violationType === 'other' ? Math.abs(parseInt(formData.customPoints)) : Math.abs(selectedViolationType?.points || 0)} نقطة 
               من الطالب {studentsData.find(s => s.id === formData.studentId)?.studentName}
             </p>
+            {formData.violationType === 'other' && formData.otherReason && (
+              <p className={`text-sm mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                السبب: {formData.otherReason}
+              </p>
+            )}
             <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              ملاحظة: سيتم إضافة المخالفة في نهاية جدول البيانات.
+              سيتم إضافة المخالفة في أول صف فارغ في جدول البيانات.
             </p>
           </div>
         )}
