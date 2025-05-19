@@ -12,6 +12,20 @@ interface AddRecordFormProps {
   onSuccess: () => void;
 }
 
+// دالة لتوليد رقم عشوائي للمعرف
+const generateRandomId = () => {
+  return Math.floor(Math.random() * 900000000) + 100000000; // توليد رقم من 9 أرقام
+};
+
+// أنواع النقاط الإضافية (يمكن تغييرها حسب احتياجاتك)
+const POINTS_TYPES = [
+  { id: 'memorization', label: 'حفظ', points: 10 },
+  { id: 'attendance', label: 'حضور', points: 5 },
+  { id: 'goodBehavior', label: 'سلوك جيد', points: 15 },
+  { id: 'activity', label: 'نشاط', points: 7 },
+  { id: 'other', label: 'أخرى', points: 1 }
+];
+
 export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
   const { isDark } = useThemeStore();
   const { showToast } = useToastStore();
@@ -21,8 +35,10 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     studentId: '',
-    pages: '',
+    pointsType: '',
+    customPoints: '5',
     reason: '',
+    details: '',
     teacher: ''
   });
 
@@ -34,7 +50,7 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.studentId || !formData.pages || !formData.reason || !formData.teacher) {
+    if (!formData.studentId || !formData.pointsType || !formData.teacher) {
       showToast('يرجى ملء جميع الحقول المطلوبة', 'error');
       return;
     }
@@ -56,31 +72,78 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
         return;
       }
 
+      // تحديد النقاط بناءً على النوع المختار
+      let points = parseInt(formData.customPoints);
+      let pointsTypeText = formData.reason || 'أخرى'; // استخدام السبب المخصص إذا كان موجودًا
+      
+      if (formData.pointsType !== 'other') {
+        const pointType = POINTS_TYPES.find(type => type.id === formData.pointsType);
+        if (pointType) {
+          points = pointType.points;
+          pointsTypeText = pointType.label;
+        }
+      }
+
+      // تأكد من أن points هي قيمة عددية صالحة
+      if (isNaN(points)) {
+        points = 5; // قيمة افتراضية إذا كانت النقاط غير صالحة
+      }
+
+      // توليد رقم عشوائي للمعرف
+      const recordId = generateRandomId().toString();
+
       const now = new Date();
+      
+      // تنسيق الوقت: HH:MM:SS (24-hour format)
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      
+      // تنسيق التاريخ: M/D/YYYY
+      const dateString = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+
       const record = {
+        id: recordId,
         studentId: formData.studentId,
         studentName: student.studentName,
-        pages: parseInt(formData.pages),
-        reason: formData.reason,
+        points: points.toString(),
+        reason: pointsTypeText + (formData.details ? ` - ${formData.details}` : ''),
         teacher: teacher.id,
         teacherName: teacher.name,
+        time: timeString,
+        date: dateString,
         dateTime: now.toISOString(),
-        date: now.toLocaleDateString('ar-SA'),
+        phoneNumber: student.phone || '',
         level: student.level
       };
 
-      await axios.post(`${SERVER_CONFIG.baseUrl}/api/records`, record);
-      
-      showToast('تم إضافة السجل بنجاح', 'success');
-      onSuccess();
-      onClose();
+      // إرسال السجل إلى الخادم
+      try {
+        await axios.post(`${SERVER_CONFIG.baseUrl}/api/records/update-row`, {
+          rowIndex: "append",
+          violationData: record
+        });
+        
+        showToast('تم إضافة سجل النقاط بنجاح', 'success');
+        onSuccess();
+        onClose();
+      } catch (error) {
+        console.error('Error updating Record Data:', error);
+        showToast('حدث خطأ في تسجيل النقاط في جدول البيانات', 'error');
+      }
     } catch (error) {
       console.error('Error adding record:', error);
-      showToast('حدث خطأ أثناء إضافة السجل', 'error');
+      showToast('حدث خطأ أثناء إضافة سجل النقاط', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // الحصول على نوع النقاط المختار
+  const selectedPointsType = POINTS_TYPES.find(type => type.id === formData.pointsType);
 
   return (
     <div className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg max-w-2xl mx-auto`}>
@@ -116,13 +179,11 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
 
         <div>
           <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            عدد الصفحات / النقاط
+            نوع النقاط
           </label>
-          <input
-            type="number"
-            name="pages"
-            min="1"
-            value={formData.pages}
+          <select
+            name="pointsType"
+            value={formData.pointsType}
             onChange={handleChange}
             className={`w-full p-2 rounded-lg border ${
               isDark 
@@ -131,16 +192,70 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
             }`}
             required
             disabled={isSubmitting}
-          />
+          >
+            <option value="">اختر نوع النقاط</option>
+            {POINTS_TYPES.map(type => (
+              <option key={type.id} value={type.id}>
+                {type.label} (+{type.points} نقطة)
+              </option>
+            ))}
+          </select>
         </div>
+
+        {formData.pointsType === 'other' && (
+          <>
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                سبب إضافة النقاط
+              </label>
+              <input
+                type="text"
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                placeholder="أدخل سبب إضافة النقاط"
+                className={`w-full p-2 rounded-lg border ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300'
+                }`}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                عدد النقاط المضافة
+              </label>
+              <input
+                type="number"
+                name="customPoints"
+                value={formData.customPoints}
+                onChange={handleChange}
+                min="1"
+                className={`w-full p-2 rounded-lg border ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300'
+                }`}
+                required
+                disabled={isSubmitting}
+              />
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                أدخل قيمة موجبة للنقاط المضافة
+              </p>
+            </div>
+          </>
+        )}
 
         <div>
           <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            السبب
+            تفاصيل إضافية
           </label>
           <textarea
-            name="reason"
-            value={formData.reason}
+            name="details"
+            value={formData.details}
             onChange={handleChange}
             rows={3}
             className={`w-full p-2 rounded-lg border ${
@@ -148,7 +263,6 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
                 ? 'bg-gray-700 border-gray-600 text-white' 
                 : 'bg-white border-gray-300'
             }`}
-            required
             disabled={isSubmitting}
           />
         </div>
@@ -178,6 +292,24 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
           </select>
         </div>
 
+        {formData.studentId && formData.pointsType && (
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-green-900/30' : 'bg-green-50'} mt-4`}>
+            <h3 className={`font-medium ${isDark ? 'text-green-300' : 'text-green-600'}`}>ملخص إضافة النقاط</h3>
+            <p className={`text-sm mt-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              سيتم إضافة {formData.pointsType === 'other' ? parseInt(formData.customPoints) : (selectedPointsType?.points || 0)} نقطة 
+              للطالب {studentsData.find(s => s.id === formData.studentId)?.studentName}
+            </p>
+            {formData.pointsType === 'other' && formData.reason && (
+              <p className={`text-sm mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                السبب: {formData.reason}
+              </p>
+            )}
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              سيتم إضافة سجل النقاط في أول صف فارغ في جدول البيانات.
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 mt-8">
           <button
             type="button"
@@ -193,12 +325,12 @@ export function AddRecordForm({ onClose, onSuccess }: AddRecordFormProps) {
           </button>
           <button
             type="submit"
-            className={`px-4 py-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700 ${
+            className={`px-4 py-2 rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 ${
               isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
             }`}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'جاري الإرسال...' : 'إضافة السجل'}
+            {isSubmitting ? 'جاري الإرسال...' : 'إضافة النقاط'}
           </button>
         </div>
       </form>
