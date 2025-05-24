@@ -26,25 +26,40 @@ export function PrintStudentsTable({
   const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
   
   // تاريخ اليوم
-  const today = new Date().toLocaleDateString('ar-SA');
-    const handlePrint = useReactToPrint({
+  const today = new Date().toLocaleDateString('ar-SA');  // استخدام مكتبة useReactToPrint بشكل مباشر
+  const handlePrint = useReactToPrint({
     documentTitle: 'قائمة-الطلاب-' + (levelFilter || 'جميع-الحلقات'),
     onAfterPrint: onClose,
-    // @ts-ignore - الخاصية content موجودة في المكتبة لكنها غير معرفة في التعريفات
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+    `,
+    // @ts-ignore - الخاصية content موجودة في المكتبة
     content: () => printRef.current
   });
-  
-  return (
+    return (
     <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}>
       <div className={`w-[210mm] max-h-[90vh] rounded-lg shadow-xl overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
         {/* رأس المربع الحواري */}
-        <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between items-center`}>
+        <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between items-center no-print`}>
           <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
             معاينة قبل الطباعة
           </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
+          <div className="flex gap-2">            <button
+              onClick={() => {
+                // استخدم setTimeout للتأكد من أن الطباعة تعمل حتى مع تحميل الصفحة
+                setTimeout(() => {
+                  try {
+                    handlePrint();
+                  } catch (error) {
+                    console.error('خطأ في الطباعة:', error);
+                    // إذا فشلت الطباعة عبر المكتبة، استخدم الطريقة التقليدية
+                    window.print();
+                  }
+                }, 100);
+              }}
               className={`px-4 py-2 rounded-md font-medium ${isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
             >
               طباعة
@@ -60,39 +75,46 @@ export function PrintStudentsTable({
         
         {/* محتوى الطباعة */}
         <div className="p-6">
-          <div className="overflow-hidden">
-            <div ref={printRef} className="print-container w-full bg-white text-black p-8">
+          <div className="overflow-hidden">            <div ref={printRef} className="print-container w-full bg-white text-black p-8">
               {/* العنوان والمعلومات */}
               <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold">{title}</h1>
-                <h2 className="text-xl mt-2">قائمة الطلاب الأعلى نقاطاً</h2>
+                <h1 className="text-3xl font-bold" style={{ marginBottom: '10px' }}>{title}</h1>
+                <h2 className="text-2xl font-bold mt-4" style={{ marginBottom: '10px' }}>قائمة الطلاب الأعلى نقاطاً</h2>
                 {levelFilter && (
-                  <h3 className="text-lg mt-1">الحلقة: {levelFilter}</h3>
+                  <h3 className="text-xl mt-3" style={{ marginBottom: '10px' }}>الحلقة: {levelFilter}</h3>
                 )}
-                <p className="mt-2 text-sm">تاريخ الطباعة: {today}</p>
+                <p className="mt-4 text-sm">تاريخ الطباعة: {today}</p>
               </div>
               
               {isEmpty ? (
                 <div className="text-center py-10">
                   <p className="text-xl font-medium">لا توجد بيانات للطلاب</p>
                 </div>
-              ) : (
-                <table className="w-full border-collapse">
+              ) : (                <table className="w-full border-collapse" style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid black' }}>
                   <thead>
-                    <tr className="border-b-2 border-gray-800">
-                      <th className="py-3 text-right">الترتيب</th>
-                      <th className="py-3 text-right">اسم الطالب</th>
-                      <th className="py-3 text-right">الحلقة</th>
-                      <th className="py-3 text-center">النقاط</th>
+                    <tr style={{ borderBottom: '2px solid black', backgroundColor: '#f0f0f0' }}>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الترتيب</th>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>اسم الطالب</th>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الحلقة</th>
+                      <th className="py-3 px-4 text-center" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>النقاط</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedStudents.map((student, index) => (
-                      <tr key={student.id} className="border-b border-gray-300">
-                        <td className="py-3 text-right">{index + 1}</td>
-                        <td className="py-3 text-right">{student.studentName}</td>
-                        <td className="py-3 text-right">{student.level}</td>
-                        <td className="py-3 text-center font-bold">{student.points}</td>
+                      <tr key={student.id} style={{ 
+                        borderBottom: '1px solid black', 
+                        backgroundColor: index < 3 ? (index === 0 ? '#ffffc0' : index === 1 ? '#e6e6e6' : '#ffdab3') : 'transparent'
+                      }}>
+                        <td className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px' }}>
+                          {index < 3 ? (
+                            <strong style={{ padding: '0 5px' }}>{index + 1}</strong>
+                          ) : (
+                            index + 1
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px' }}>{student.studentName}</td>
+                        <td className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px' }}>{student.level}</td>
+                        <td className="py-3 px-4 text-center font-bold" style={{ border: '1px solid black', padding: '8px' }}>{student.points}</td>
                       </tr>
                     ))}
                   </tbody>

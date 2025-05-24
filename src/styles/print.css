@@ -1,12 +1,17 @@
 /* تصميم الطباعة */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  
   body * {
     visibility: hidden;
   }
   
   .print-container,
   .print-container * {
-    visibility: visible;
+    visibility: visible !important;
   }
   
   .print-container {
@@ -14,10 +19,21 @@
     left: 0;
     top: 0;
     width: 100%;
+    background-color: white !important;
+    color: black !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
   
   .no-print {
     display: none !important;
+  }
+  
+  /* تأكيد من تعيين ألوان الطباعة بشكل صحيح */
+  .print-container * {
+    color: black !important;
+    background-color: white !important;
+    border-color: black !important;
   }
 }
 
@@ -26,11 +42,13 @@
   font-family: Arial, Tahoma, sans-serif !important;
   color: black !important;
   background-color: white !important;
+  direction: rtl;
 }
 
 .print-container table {
   width: 100%;
   border-collapse: collapse;
+  border: 2px solid black;
 }
 
 .print-container th {
@@ -38,6 +56,29 @@
   padding: 8px;
   text-align: right;
   border-bottom: 2px solid #000;
+  background-color: #f0f0f0 !important;
+  color: black !important;
+  border: 1px solid black !important;
+}
+
+/* أنماط تصميم الجدول للطباعة */
+.print-container td {
+  border: 1px solid black !important;
+  padding: 8px;
+  text-align: right;
+}
+
+/* الألوان في حالة الطباعة الملونة */
+@media print and (color) {
+  .print-container tr:nth-child(1) td {
+    background-color: #ffffc0 !important; /* ذهبي فاتح */
+  }
+  .print-container tr:nth-child(2) td {
+    background-color: #e6e6e6 !important; /* فضي فاتح */
+  }
+  .print-container tr:nth-child(3) td {
+    background-color: #ffdab3 !important; /* برونزي فاتح */
+  }
 }
 
 .print-container td {
