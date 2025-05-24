@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useApi } from '../hooks/api/useApi';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { AdvancedStats } from '../components/dashboard/AdvancedStats';
@@ -7,26 +7,30 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Users, ClipboardList, GraduationCap, AlertTriangle, Award } from '../components/icons';
 import { PageLayout } from '../components/layout/PageLayout';
 import { DashboardCard } from '../components/home/DashboardCard';
+import { TopStudentsCard } from '../components/home/TopStudentsCard';
+import { TopStudentsByLevelCard } from '../components/home/TopStudentsByLevelCard';
 import { useThemeStore } from '../store/themeStore';
+
+
 
 export function HomePage() {
   const { isDark } = useThemeStore();
-  const { data: studentsData, loading, error } = useApi<Student[]>('students');
+  const { data: studentsData = [], loading, error } = useApi<Student[]>('students');
 
   const stats = useMemo(() => {
-    if (!studentsData) return null;
+    if (!studentsData || studentsData.length === 0) return null;
 
     const totalStudents = studentsData.length;
     
     // حساب متوسط النقاط
-    const totalPoints = studentsData.reduce((sum: number, student: Student) => sum + (student.points || 0), 0);
+    const totalPoints = studentsData.reduce((sum, student) => sum + (student.points || 0), 0);
     const averagePoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
     
     // حساب عدد الحلقات الفريدة
-    const uniqueLevels = new Set(studentsData.map((student: Student) => student.level)).size;
+    const uniqueLevels = new Set(studentsData.map(student => student.level)).size;
     
     // حساب عدد الطلاب المتميزين (النقاط أعلى من 80)
-    const excellentStudents = studentsData.filter((student: Student) => (student.points || 0) > 80).length;
+    const excellentStudents = studentsData.filter(student => (student.points || 0) > 80).length;
 
     return {
       totalStudents,
@@ -100,10 +104,30 @@ export function HomePage() {
           </div>
         </div>
         
+        {/* قسم الطلاب الأوائل */}
+        {studentsData && studentsData.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <TopStudentsCard 
+              title="العشر الأوائل"
+              students={studentsData}
+              icon={<Award size={24} />}
+              bgColorClass={isDark ? 'bg-gradient-to-br from-blue-900/40 to-blue-800/20' : 'bg-gradient-to-br from-blue-50 to-sky-50'}
+            />
+            <TopStudentsByLevelCard 
+              title="الأوائل حسب الحلقة" 
+              students={studentsData}
+              icon={<GraduationCap size={24} />}
+              bgColorClass={isDark ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/20' : 'bg-gradient-to-br from-purple-50 to-violet-50'}
+            />
+          </div>
+        )}
+        
         {/* Advanced Stats Section */}
         {stats && studentsData && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">التحليلات والإحصائيات المتقدمة</h2>
+            <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              التحليلات والإحصائيات المتقدمة
+            </h2>
             <AdvancedStats studentsData={studentsData} />
           </div>
         )}
@@ -147,7 +171,6 @@ export function HomePage() {
             icon={<AlertTriangle className="h-6 w-6" />}
             description="متابعة المخالفات والإنذارات للطلاب"
             to="/students"
-            badge={studentsData ? studentsData.filter(s => s.violations?.length > 0).length : 0}
             className={`${isDark ? 'bg-red-900/40 hover:bg-red-900/60' : 'bg-red-50 hover:bg-red-100'} shadow-lg hover:shadow-xl`}
           />
         </div>
