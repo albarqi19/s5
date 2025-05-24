@@ -4,7 +4,7 @@ import { StatsCard } from '../components/dashboard/StatsCard';
 import { AdvancedStats } from '../components/dashboard/AdvancedStats';
 import type { Student } from '../types/student';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Users, ClipboardList, GraduationCap, AlertTriangle, Award } from '../components/icons';
+import { Users, ClipboardList, GraduationCap, AlertTriangle, Award, Monitor } from '../components/icons';
 import { PageLayout } from '../components/layout/PageLayout';
 import { DashboardCard } from '../components/home/DashboardCard';
 import { TopStudentsCard } from '../components/home/TopStudentsCard';
@@ -165,13 +165,19 @@ export function HomePage() {
             to="/certificates"
             className={`${isDark ? 'bg-yellow-900/40 hover:bg-yellow-900/60' : 'bg-yellow-50 hover:bg-yellow-100'} shadow-lg hover:shadow-xl`}
           />
-          
-          <DashboardCard 
+            <DashboardCard 
             title="إنذارات الطلاب" 
             icon={<AlertTriangle className="h-6 w-6" />}
             description="متابعة المخالفات والإنذارات للطلاب"
             to="/students"
             className={`${isDark ? 'bg-red-900/40 hover:bg-red-900/60' : 'bg-red-50 hover:bg-red-100'} shadow-lg hover:shadow-xl`}
+          />
+            <DashboardCard 
+            title="شاشة العرض" 
+            icon={<Monitor className="h-6 w-6" />}
+            description="عرض الطلاب المتميزين على شاشة العرض لإظهارها للحضور"
+            to="/display"
+            className={`${isDark ? 'bg-indigo-900/40 hover:bg-indigo-900/60' : 'bg-indigo-50 hover:bg-indigo-100'} shadow-lg hover:shadow-xl`}
           />
         </div>
       </div>

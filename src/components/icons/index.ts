@@ -17,5 +17,10 @@ export {
   Filter,
   Award,
   Printer,
-  Download
+  Download,
+  Monitor,
+  Layout,
+  Trophy,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';

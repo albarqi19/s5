@@ -5,6 +5,7 @@ import { StudentsPage } from './pages/StudentsPage';
 import { RecordsPage } from './pages/RecordsPage';
 import { TeachersPage } from './pages/TeachersPage';
 import { CertificatesPage } from './pages/CertificatesPage';
+import { DisplayScreenPage } from './pages/DisplayScreenPage';
 import { useThemeStore } from './store/themeStore';
 import { GlobalToast } from './components/common/GlobalToast';
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/records" element={<RecordsPage />} />
             <Route path="/teachers" element={<TeachersPage />} />
             <Route path="/certificates" element={<CertificatesPage />} />
+            <Route path="/display" element={<DisplayScreenPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
