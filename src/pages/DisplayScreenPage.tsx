@@ -42,6 +42,43 @@ export function DisplayScreenPage() {
       }
     }
   };
+  // تنفيذ تعديلات على DOM عند دخول وضع العرض للتأكد من ملء الشاشة
+  useEffect(() => {
+    if (isDisplayMode) {
+      // إضافة فئة لجسم الصفحة لمنع التمرير
+      document.body.style.overflow = 'hidden';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      
+      // تحقق من نسبة أبعاد الشاشة وتعديل العرض بناءً عليها
+      const adjustDisplaySize = () => {
+        const displayElement = document.querySelector('.fullscreen-display');
+        if (displayElement) {
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+          const aspectRatio = windowWidth / windowHeight;
+          
+          // ضبط حجم العرض بناءً على نسبة العرض إلى الارتفاع
+          if (aspectRatio > 16/9) {
+            // الشاشة أعرض من النسبة 16:9
+            displayElement.classList.add('wide-screen');
+          } else {
+            displayElement.classList.remove('wide-screen');
+          }
+        }
+      };
+      
+      adjustDisplaySize();
+      window.addEventListener('resize', adjustDisplaySize);
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.margin = '';
+        document.body.style.padding = '';
+        window.removeEventListener('resize', adjustDisplaySize);
+      };
+    }
+  }, [isDisplayMode]);
 
   // بدء وضع العرض
   const startDisplayMode = () => {
@@ -49,13 +86,24 @@ export function DisplayScreenPage() {
     if (!isFullscreen) {
       toggleFullscreen();
     }
+    
+    // تأخير قليل لضمان التحميل الكامل
+    setTimeout(() => {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.log("خطأ في تفعيل ملء الشاشة:", err);
+        });
+      }
+    }, 100);
   };
 
   // الخروج من وضع العرض
   const exitDisplayMode = () => {
     setIsDisplayMode(false);
-    if (isFullscreen) {
-      toggleFullscreen();
+    if (isFullscreen && document.exitFullscreen) {
+      document.exitFullscreen().catch(err => {
+        console.log("خطأ في الخروج من وضع ملء الشاشة:", err);
+      });
     }
   };
 
@@ -83,7 +131,7 @@ export function DisplayScreenPage() {
   const sortedStudents = [...studentsData].sort((a, b) => (b.points || 0) - (a.points || 0));
     // إذا كنا في وضع العرض - يظهر شاشة العرض بملء الشاشة
   if (isDisplayMode) {
-    return (      <div className="fullscreen-display">
+    return (      <div className="fullscreen-display fullscreen-mode">
         <div className="content-wrapper bg-gradient-to-br from-blue-900 to-purple-900">
           <div className="absolute top-0 right-0 left-0 p-4 flex justify-center">
             {/* استخدام فلتر لتحويل الشعار إلى اللون الأبيض */}
@@ -106,7 +154,7 @@ export function DisplayScreenPage() {
             <Minimize2 size={24} />
           </button>
           
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="display-content">
             {displayMode === 'top3' ? (
               <TopStudentsDisplay students={sortedStudents.slice(0, 3)} />
             ) : (
@@ -115,7 +163,7 @@ export function DisplayScreenPage() {
           </div>
 
           {/* زخرفة خلفية */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl"></div>
             <div className="absolute bottom-40 left-10 w-80 h-80 rounded-full bg-purple-500/10 blur-3xl"></div>
           </div>

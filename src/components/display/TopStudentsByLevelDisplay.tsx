@@ -81,12 +81,12 @@ export function TopStudentsByLevelDisplay({ students }: TopStudentsByLevelDispla
   };
 
   return (
-    <div className="w-full max-w-6xl px-8">
-      <motion.h1 
+    <div className="w-full max-w-6xl px-8">      <motion.h1 
         className="text-4xl font-bold text-center text-white mb-4 flex items-center justify-center"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
+        style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
       >
         <GraduationCap size={40} className="ml-3" />
         <span>أفضل الطلاب في</span>
@@ -105,12 +105,12 @@ export function TopStudentsByLevelDisplay({ students }: TopStudentsByLevelDispla
       
       <AnimatePresence mode="wait">        <motion.div
           key={currentLevel}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl"
+          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl display-card"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
-          style={{ width: '1200px' }}
+          style={{ width: '85%', maxWidth: '1400px' }}
         >
           <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
             <div className="text-white text-center font-bold text-xl">المركز</div>
@@ -136,7 +136,7 @@ export function TopStudentsByLevelDisplay({ students }: TopStudentsByLevelDispla
                   >
                     {index + 1}
                   </div>
-                </div>                <div className="text-white text-xl text-right font-bold student-name" style={{ width: '500px', overflow: 'visible', whiteSpace: 'normal', lineHeight: '1.3' }}>
+                </div>                <div className="text-white text-2xl text-right font-bold student-name" style={{ width: '100%', maxWidth: '600px', overflow: 'visible', whiteSpace: 'normal', lineHeight: '1.3', padding: '0 10px' }}>
                   {student.studentName}
                 </div>
                 
