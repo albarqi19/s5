@@ -105,15 +105,14 @@ export function TopStudentsDisplay({ students }: TopStudentsDisplayProps) {
                   )}
                 </div>
               </div>
-              
-              <motion.div 
-                className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-center text-white w-[220px] shadow-lg"
+                <motion.div 
+                className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-center text-white w-[350px] shadow-lg"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 + idx * 0.2 }}
                 whileHover={{ y: -5 }}
               >
-                <h3 className="text-3xl font-bold mb-2 truncate">{student.studentName}</h3>
+                <h3 className="text-3xl font-bold mb-2 leading-tight student-name" style={{ minHeight: '80px' }}>{student.studentName}</h3>
                 <p className="text-xl opacity-90 mb-2">الحلقة: {student.level}</p>
                 <div className="flex justify-center">
                   <motion.div 

@@ -110,7 +110,7 @@ export function TopStudentsByLevelDisplay({ students }: TopStudentsByLevelDispla
           initial="hidden"
           animate="visible"
           exit="exit"
-          style={{ width: '800px' }}
+          style={{ width: '1200px' }}
         >
           <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
             <div className="text-white text-center font-bold text-xl">المركز</div>
@@ -136,9 +136,7 @@ export function TopStudentsByLevelDisplay({ students }: TopStudentsByLevelDispla
                   >
                     {index + 1}
                   </div>
-                </div>
-                
-                <div className="text-white text-xl text-right font-bold truncate">
+                </div>                <div className="text-white text-xl text-right font-bold student-name" style={{ width: '500px', overflow: 'visible', whiteSpace: 'normal', lineHeight: '1.3' }}>
                   {student.studentName}
                 </div>
                 

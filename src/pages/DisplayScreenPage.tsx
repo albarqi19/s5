@@ -81,38 +81,44 @@ export function DisplayScreenPage() {
 
   // فرز الطلاب حسب النقاط تنازلياً
   const sortedStudents = [...studentsData].sort((a, b) => (b.points || 0) - (a.points || 0));
-  
-  // إذا كنا في وضع العرض - يظهر شاشة العرض بملء الشاشة
+    // إذا كنا في وضع العرض - يظهر شاشة العرض بملء الشاشة
   if (isDisplayMode) {
-    return (
-      <div className="relative w-screen h-screen bg-gradient-to-br from-blue-900 to-purple-900 overflow-hidden" style={{ width: '1080px', height: '1920px', maxWidth: '100vw', maxHeight: '100vh', margin: '0 auto' }}>
-        <div className="absolute top-0 right-0 left-0 p-4 flex justify-center">
-          <img src="/mosque-logo.png" alt="شعار" className="h-24 object-contain" />
-        </div>
-        
-        <div className="absolute bottom-0 left-0 right-0 text-center p-4 text-white text-xl">
-          <h2 className="font-bold text-2xl">برنامج نافس للتميز</h2>
-        </div>
-        
-        <button 
-          onClick={exitDisplayMode}
-          className="absolute top-4 left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all z-10"
-        >
-          <Minimize2 size={24} />
-        </button>
-        
-        <div className="absolute inset-0 flex items-center justify-center">
-          {displayMode === 'top3' ? (
-            <TopStudentsDisplay students={sortedStudents.slice(0, 3)} />
-          ) : (
-            <TopStudentsByLevelDisplay students={studentsData} />
-          )}
-        </div>
+    return (      <div className="fullscreen-display">
+        <div className="content-wrapper bg-gradient-to-br from-blue-900 to-purple-900">
+          <div className="absolute top-0 right-0 left-0 p-4 flex justify-center">
+            {/* استخدام فلتر لتحويل الشعار إلى اللون الأبيض */}
+            <img 
+              src="/mosque-logo.png" 
+              alt="شعار" 
+              className="h-24 object-contain" 
+              style={{ filter: 'brightness(0) invert(1)' }} 
+            />
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 text-center p-4 text-white text-xl">
+            <h2 className="font-bold text-2xl">برنامج نافس للتميز</h2>
+          </div>
+          
+          <button 
+            onClick={exitDisplayMode}
+            className="absolute top-4 left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all z-10"
+          >
+            <Minimize2 size={24} />
+          </button>
+          
+          <div className="absolute inset-0 flex items-center justify-center">
+            {displayMode === 'top3' ? (
+              <TopStudentsDisplay students={sortedStudents.slice(0, 3)} />
+            ) : (
+              <TopStudentsByLevelDisplay students={studentsData} />
+            )}
+          </div>
 
-        {/* زخرفة خلفية */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl"></div>
-          <div className="absolute bottom-40 left-10 w-80 h-80 rounded-full bg-purple-500/10 blur-3xl"></div>
+          {/* زخرفة خلفية */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl"></div>
+            <div className="absolute bottom-40 left-10 w-80 h-80 rounded-full bg-purple-500/10 blur-3xl"></div>
+          </div>
         </div>
       </div>
     );
@@ -132,11 +138,9 @@ export function DisplayScreenPage() {
               {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
               <span>{isFullscreen ? 'الخروج من وضع ملء الشاشة' : 'تفعيل وضع ملء الشاشة'}</span>
             </button>
-          </div>
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-8">
+          </div>          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-8">
             <p className="text-blue-800 dark:text-blue-300">
-              هذه الصفحة تتيح لك عرض الطلاب المتميزين على شاشة عرض بحجم 1080×1920 بكسل. سيتم عرض الطلاب الثلاثة الأوائل ثم أفضل 5 طلاب في كل حلقة بتناوب.
+              هذه الصفحة تتيح لك عرض الطلاب المتميزين على شاشة عرض بحجم 1920×1080 بكسل. سيتم عرض الطلاب الثلاثة الأوائل ثم أفضل 5 طلاب في كل حلقة بتناوب.
             </p>
           </div>
 
@@ -145,9 +149,8 @@ export function DisplayScreenPage() {
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <Monitor size={20} />
                 <span>معاينة العرض</span>
-              </h3>
-              <div className="aspect-[9/16] bg-gradient-to-br from-blue-900 to-purple-900 rounded-lg overflow-hidden relative">
-                <div className="absolute inset-0 flex items-center justify-center transform scale-[0.3]">
+              </h3>              <div className="aspect-[16/9] bg-gradient-to-br from-blue-900 to-purple-900 rounded-lg overflow-hidden relative">
+                <div className="absolute inset-0 flex items-center justify-center transform scale-[0.2]">
                   {displayMode === 'top3' ? (
                     <TopStudentsDisplay students={sortedStudents.slice(0, 3)} />
                   ) : (
