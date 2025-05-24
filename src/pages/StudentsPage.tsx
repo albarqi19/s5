@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '../components/layout/PageLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { AddStudentModal } from '../components/students/AddStudentModal';
@@ -6,22 +6,14 @@ import { EditStudentModal } from '../components/students/EditStudentModal';
 import { StudentDetailsModal } from '../components/students/StudentDetailsModal';
 import { DeleteConfirmationModal } from '../components/common/DeleteConfirmationModal';
 import { AddViolationModal } from '../components/students/AddViolationModal';
+import { PrintStudentsTable } from '../components/students/PrintStudentsTable';
 import { useThemeStore } from '../store/themeStore';
 import { useToastStore } from '../store/toastStore';
 import { StudentsDashboard } from '../components/students/StudentsDashboard';
-import { Plus, AlertTriangle } from '../components/icons';
+import { Plus, AlertTriangle, Printer } from '../components/icons';
 import axios from 'axios';
 import { SERVER_CONFIG } from '../config/server';
-
-interface Student {
-  id: string;
-  studentName: string;
-  level: string;
-  violations: number;
-  parts: string;
-  points: number;
-  phone: string;
-}
+import type { Student } from '../types/student';
 
 export function StudentsPage() {
   const { isDark } = useThemeStore();
@@ -31,13 +23,13 @@ export function StudentsPage() {
   const [error, setError] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showViolationModal, setShowViolationModal] = useState(false);
-  const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
+  const [showViolationModal, setShowViolationModal] = useState(false);  const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
   const [levelFilter, setLevelFilter] = useState('');
   const [partsFilter, setPartsFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // الحلقات المتاحة
   const circles = [
@@ -64,17 +56,6 @@ export function StudentsPage() {
       setLoading(false);
     }
   };
-
-  const handleAddSuccess = async () => {
-    await fetchStudents();
-    setShowAddModal(false);
-  };
-
-  const handleEditSuccess = async () => {
-    await fetchStudents();
-    setStudentToEdit(null);
-  };
-
   const handleViolationSuccess = async () => {
     await fetchStudents();
     setShowViolationModal(false);
@@ -98,32 +79,15 @@ export function StudentsPage() {
     }
   };
 
-  const handleAddStudent = async (studentData: any) => {
-    try {
-      await axios.post(`${SERVER_CONFIG.baseUrl}/api/students`, studentData);
-      await fetchStudents();
-      setShowAddModal(false);
-      showToast(`تم إضافة الطالب ${studentData.studentName} بنجاح`, 'success');
-    } catch (err) {
-      showToast('حدث خطأ أثناء إضافة الطالب', 'error');
-    }
-  };
-
-  const handleEditStudent = async (studentData: Student) => {
-    try {
-      await axios.put(`${SERVER_CONFIG.baseUrl}/api/students/${studentData.id}`, studentData);
-      await fetchStudents();
-      setStudentToEdit(null);
-      setSelectedStudent(null);
-      showToast(`تم تحديث بيانات الطالب ${studentData.studentName} بنجاح`, 'success');
-    } catch (err) {
-      showToast('حدث خطأ أثناء تحديث بيانات الطالب', 'error');
-    }
-  };
-
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
-  };
+  // الحصول على الطلاب المفلترة للطباعة
+  const filteredStudents = students
+    .filter(student => !levelFilter || student.level === levelFilter)
+    .filter(student => !partsFilter || student.parts === partsFilter)
+    .filter(student => 
+      student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => sortOrder === 'desc' ? b.points - a.points : a.points - b.points);
 
   return (
     <PageLayout>
@@ -138,8 +102,14 @@ export function StudentsPage() {
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 إجمالي الطلاب: {students.length}
               </p>
-            </div>
-            <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
+            </div>            <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
+              <button
+                onClick={() => setShowPrintModal(true)}
+                className="px-6 py-3 text-white bg-gray-600 rounded-lg shadow-lg hover:bg-gray-700 transform hover:scale-105 transition-all duration-300 flex items-center"
+              >
+                <Printer className="h-5 w-5 ml-2" />
+                طباعة القائمة
+              </button>
               <button
                 onClick={() => setShowViolationModal(true)}
                 className="px-6 py-3 text-white bg-red-600 rounded-lg shadow-lg hover:bg-red-700 transform hover:scale-105 transition-all duration-300 flex items-center"
@@ -290,14 +260,14 @@ export function StudentsPage() {
         {showAddModal && (
           <AddStudentModal
             onClose={() => setShowAddModal(false)}
-            onSuccess={handleAddStudent}
+            onSuccess={() => fetchStudents()}
           />
         )}
         {studentToEdit && (
           <EditStudentModal
             student={studentToEdit}
             onClose={() => setStudentToEdit(null)}
-            onSuccess={handleEditStudent}
+            onSuccess={() => fetchStudents()}
           />
         )}
         {selectedStudent && (
@@ -323,6 +293,13 @@ export function StudentsPage() {
           onClose={() => setShowViolationModal(false)}
           onSuccess={handleViolationSuccess}
         />
+        {showPrintModal && (
+          <PrintStudentsTable
+            students={filteredStudents}
+            levelFilter={levelFilter}
+            onClose={() => setShowPrintModal(false)}
+          />
+        )}
       </div>
     </PageLayout>
   );

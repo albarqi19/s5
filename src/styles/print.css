@@ -1,0 +1,51 @@
+/* تصميم الطباعة */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+  
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* تحسينات صفحة الطباعة */
+.print-container {
+  font-family: Arial, Tahoma, sans-serif !important;
+  color: black !important;
+  background-color: white !important;
+}
+
+.print-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-container th {
+  font-weight: bold;
+  padding: 8px;
+  text-align: right;
+  border-bottom: 2px solid #000;
+}
+
+.print-container td {
+  padding: 8px;
+  text-align: right;
+  border-bottom: 1px solid #ddd;
+}
+
+.print-container tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
