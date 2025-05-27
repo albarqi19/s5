@@ -63,11 +63,20 @@ export function PrintStudentsTable({
           display: block !important;
         }
       }
-    `,
-    // @ts-ignore - الخاصية content موجودة في المكتبة
+    `,    // @ts-ignore - الخاصية content موجودة في المكتبة
     content: () => printRef.current
-    return (
-    <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}>      <div className={`w-[210mm] max-h-[90vh] rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`} style={{ overflow: 'auto' }}>
+  });
+    
+  // Add cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupAfterPrint();
+    };
+  }, []);
+
+  return (
+    <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}>
+      <div className={`w-[210mm] max-h-[90vh] rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`} style={{ overflow: 'auto' }}>
         {/* رأس المربع الحواري */}
         <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between items-center no-print`}>
           <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
