@@ -28,10 +28,10 @@ export function PrintStudentsTable({
   // تاريخ اليوم
   const today = new Date().toLocaleDateString('ar-SA');
 
-  // تحسين مكتبة الطباعة مع إعدادات إضافية لمنع التداخل
-  const handlePrint = useReactToPrint({
+  // تحسين مكتبة الطباعة مع إعدادات إضافية لمنع التداخل  const handlePrint = useReactToPrint({
     documentTitle: 'قائمة-الطلاب-' + (levelFilter || 'جميع-الحلقات'),
     onAfterPrint: onClose,
+    removeAfterPrint: true,
     pageStyle: `
       @page {
         size: A4 portrait;
@@ -40,50 +40,56 @@ export function PrintStudentsTable({
       
       @media print {
         html, body {
-          height: 100% !important;
-          overflow: hidden !important;
+          height: auto !important;
+          overflow: visible !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
         
         table { page-break-inside: auto !important; }
-        tr { page-break-inside: avoid !important; }
+        tr { page-break-inside: avoid !important; page-break-after: auto !important; }
         thead { display: table-header-group !important; }
         tfoot { display: table-footer-group !important; }
         
         /* إصلاح مشكلة القطع والتداخل */
         .print-container {
-          position: relative !important;
+          position: static !important;
           overflow: visible !important;
           width: 100% !important;
           height: auto !important;
-          page-break-before: always !important;
+          break-inside: auto !important;
+          page-break-before: auto !important;
+          display: block !important;
         }
       }
     `,
     // @ts-ignore - الخاصية content موجودة في المكتبة
     content: () => printRef.current
-  });
     return (
-    <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}>
-      <div className={`w-[210mm] max-h-[90vh] rounded-lg shadow-xl overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+    <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}>      <div className={`w-[210mm] max-h-[90vh] rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`} style={{ overflow: 'auto' }}>
         {/* رأس المربع الحواري */}
         <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} flex justify-between items-center no-print`}>
           <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            معاينة قبل الطباعة
+            معاينة قبل الطباعة {students.length > 0 ? `(${students.length} طالب)` : ''}
           </h2>
           <div className="flex gap-2">            <button
               onClick={() => {
                 // استخدم setTimeout للتأكد من أن الطباعة تعمل حتى مع تحميل الصفحة
                 setTimeout(() => {
                   try {
+                    // إزالة أي قيود على الارتفاع قبل الطباعة للتأكد من ظهور جميع البيانات
+                    const printContainer = printRef.current;
+                    if (printContainer) {
+                      printContainer.style.maxHeight = 'none';
+                      printContainer.style.overflow = 'visible';
+                    }
                     handlePrint();
                   } catch (error) {
                     console.error('خطأ في الطباعة:', error);
                     // إذا فشلت الطباعة عبر المكتبة، استخدم الطريقة التقليدية
                     window.print();
                   }
-                }, 100);
+                }, 200);
               }}
               className={`px-4 py-2 rounded-md font-medium ${isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
             >
@@ -98,19 +104,19 @@ export function PrintStudentsTable({
           </div>
         </div>
         
-        {/* محتوى الطباعة */}        <div className="p-6">
-          <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded-lg no-print">
+        {/* محتوى الطباعة */}        <div className="p-6">          <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded-lg no-print">
             <h4 className="font-bold mb-1">نصائح للطباعة:</h4>
             <ul className="list-disc list-inside text-sm">
               <li>للحصول على نتائج أفضل، استخدم متصفح Chrome للطباعة</li>
               <li>تأكد من تحديد خيار "طباعة الخلفيات" في إعدادات الطباعة</li>
               <li>اضبط الهوامش على "بلا" للحصول على طباعة أكمل</li>
+              <li>تأكد من تفعيل خيار "طباعة العناصر الرسومية" في إعدادات الطباعة</li>
+              <li>قم بتحديد "كل الصفحات" في إعدادات نطاق الطباعة (وليس "الصفحة الحالية")</li>
             </ul>
-          </div>
-          <div className="overflow-hidden">
+          </div><div className="overflow-visible print-wrapper">
             <div ref={printRef} className="print-container w-full bg-white text-black p-8">
               {/* العنوان والمعلومات */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-8 print-header">
                 <h1 className="text-3xl font-bold" style={{ marginBottom: '10px' }}>{title}</h1>
                 <h2 className="text-2xl font-bold mt-4" style={{ marginBottom: '10px' }}>قائمة الطلاب الأعلى نقاطاً</h2>
                 {levelFilter && (
@@ -123,18 +129,18 @@ export function PrintStudentsTable({
                 <div className="text-center py-10">
                   <p className="text-xl font-medium">لا توجد بيانات للطلاب</p>
                 </div>
-              ) : (
-                <table className="w-full border-collapse print-table" style={{ 
+              ) : (                <table className="w-full border-collapse print-table" style={{ 
                   borderCollapse: 'collapse', 
                   width: '100%', 
                   border: '1px solid black',
+                  tableLayout: 'fixed'
                 }}>
                   <thead style={{ display: 'table-header-group' }}>
                     <tr style={{ borderBottom: '2px solid black', backgroundColor: '#f0f0f0' }}>
-                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الترتيب</th>
-                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>اسم الطالب</th>
-                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الحلقة</th>
-                      <th className="py-3 px-4 text-center" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>النقاط</th>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold', width: '15%' }}>الترتيب</th>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold', width: '45%' }}>اسم الطالب</th>
+                      <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold', width: '25%' }}>الحلقة</th>
+                      <th className="py-3 px-4 text-center" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold', width: '15%' }}>النقاط</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -142,7 +148,8 @@ export function PrintStudentsTable({
                       <tr key={student.id} style={{ 
                         borderBottom: '1px solid black', 
                         backgroundColor: index < 3 ? (index === 0 ? '#ffffc0' : index === 1 ? '#e6e6e6' : '#ffdab3') : (index % 2 === 0 ? '#f9f9f9' : 'transparent'),
-                        pageBreakInside: 'avoid'
+                        pageBreakInside: 'avoid',
+                        breakInside: 'avoid'
                       }}>
                         <td className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px' }}>
                           {index < 3 ? (
@@ -156,19 +163,17 @@ export function PrintStudentsTable({
                         <td className="py-3 px-4 text-center font-bold" style={{ border: '1px solid black', padding: '8px' }}>{student.points}</td>
                       </tr>
                     ))}
-                  </tbody>
-                  <tfoot style={{ display: 'table-footer-group' }}>
+                  </tbody>                  <tfoot style={{ display: 'table-footer-group' }}>
                     <tr>
-                      <td colSpan={4} style={{ visibility: 'hidden', height: '1px' }}></td>
+                      <td colSpan={4} style={{ padding: '5px', height: '20px' }}>
+                        <div className="text-center" style={{ fontSize: '10px', color: '#666' }}>
+                          <p> نافس  © {new Date().getFullYear()}</p>
+                        </div>
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
               )}
-              
-              {/* معلومات تذييل الصفحة - تظهر في كل صفحة */}
-              <div className="text-center mt-8" style={{ fontSize: '10px', color: '#666' }}>
-                <p> نافس  © {new Date().getFullYear()}</p>
-              </div>
             </div>
           </div>
         </div>

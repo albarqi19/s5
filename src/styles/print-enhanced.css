@@ -1,0 +1,95 @@
+/* إصلاح مشكلة الطباعة - print-enhanced.css */
+
+/* قواعد عامة للطباعة متعددة الصفحات */
+@media print {
+  /* إعدادات الصفحة */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+    /* تهيئة البيئة للطباعة */
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* إعادة ضبط إعدادات الطباعة */
+  * {
+    box-sizing: border-box !important;
+  }
+  
+  /* إعدادات الحاوية الرئيسية */
+  .print-wrapper {
+    overflow: visible !important;
+    height: auto !important;
+    page-break-before: auto !important;
+  }
+  
+  /* إعدادات حاوية محتوى الطباعة */
+  .print-container {
+    position: static !important;
+    float: none !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* إعدادات الجدول */
+  .print-container table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+  }
+  
+  /* إعدادات الصف */
+  .print-container tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+    break-inside: avoid !important;
+  }
+  
+  /* إعدادات رأس الجدول */
+  .print-container thead {
+    display: table-header-group !important;
+  }
+  
+  /* إعدادات تذييل الجدول */
+  .print-container tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* إعدادات الخلية */
+  .print-container td, 
+  .print-container th {
+    vertical-align: middle !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  /* إخفاء العناصر التي لا تظهر في الطباعة */
+  .no-print {
+    display: none !important;
+  }
+
+  /* إعدادات النص والألوان */
+  .print-container {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* تأكيد ظهور جميع محتويات الطباعة */
+  .print-container * {
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+}

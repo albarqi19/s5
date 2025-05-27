@@ -8,9 +8,17 @@
 
 /* 2. تحسينات للطباعة متعددة الصفحات */
 @media print {
+  /* تعديل أساسي على الطباعة لضمان عرض كل العناصر */
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
   /* منع تقسيم العناصر بين الصفحات */
   .print-container table {
     width: 100% !important;
+    table-layout: fixed !important;
     border-collapse: collapse !important;
     border-spacing: 0 !important;
     page-break-inside: auto !important;
