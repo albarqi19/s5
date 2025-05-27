@@ -1,0 +1,44 @@
+/* قواعد خاصة بتصحيح مشكلة طباعة جدول الطلاب */
+@media print {
+  /* تصحيح المشكلة العامة للطباعة */
+  body.printing-students * {
+    visibility: hidden;
+  }
+  
+  body.printing-students .print-container,
+  body.printing-students .print-container * {
+    visibility: visible !important;
+  }
+  
+  body.printing-students .print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 15mm !important;
+    width: 100% !important;
+  }
+  
+  /* تحديد الحجم الثابت للجدول */
+  body.printing-students .print-container table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+  
+  /* منع تقسيم الصفوف بين الصفحات */
+  body.printing-students tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* ضمان عرض رأس الجدول في كل صفحة */
+  body.printing-students thead {
+    display: table-header-group !important;
+  }
+  
+  /* ضمان عرض تذييل الجدول في كل صفحة */  
+  body.printing-students tfoot {
+    display: table-footer-group !important;
+  }
+}

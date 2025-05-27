@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { useThemeStore } from '../../store/themeStore';
 import type { Student } from '../../types/student';
+import { prepareForPrint, cleanupAfterPrint } from '../../utils/printHelper';
 
 interface PrintStudentsTableProps {
   students: Student[];
@@ -24,11 +25,11 @@ export function PrintStudentsTable({
   
   // ترتيب الطلاب حسب النقاط من الأعلى إلى الأدنى
   const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
-  
-  // تاريخ اليوم
+    // تاريخ اليوم
   const today = new Date().toLocaleDateString('ar-SA');
 
-  // تحسين مكتبة الطباعة مع إعدادات إضافية لمنع التداخل  const handlePrint = useReactToPrint({
+  // تحسين مكتبة الطباعة مع إعدادات إضافية لمنع التداخل
+  const handlePrint = useReactToPrint({
     documentTitle: 'قائمة-الطلاب-' + (levelFilter || 'جميع-الحلقات'),
     onAfterPrint: onClose,
     removeAfterPrint: true,
@@ -72,24 +73,21 @@ export function PrintStudentsTable({
           <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
             معاينة قبل الطباعة {students.length > 0 ? `(${students.length} طالب)` : ''}
           </h2>
-          <div className="flex gap-2">            <button
-              onClick={() => {
+          <div className="flex gap-2">            <button              onClick={() => {
                 // استخدم setTimeout للتأكد من أن الطباعة تعمل حتى مع تحميل الصفحة
                 setTimeout(() => {
                   try {
-                    // إزالة أي قيود على الارتفاع قبل الطباعة للتأكد من ظهور جميع البيانات
-                    const printContainer = printRef.current;
-                    if (printContainer) {
-                      printContainer.style.maxHeight = 'none';
-                      printContainer.style.overflow = 'visible';
-                    }
+                    // تحضير الطباعة باستخدام الأداة المساعدة
+                    prepareForPrint(printRef);
                     handlePrint();
                   } catch (error) {
                     console.error('خطأ في الطباعة:', error);
                     // إذا فشلت الطباعة عبر المكتبة، استخدم الطريقة التقليدية
+                    prepareForPrint(printRef);
                     window.print();
+                    setTimeout(cleanupAfterPrint, 1000);
                   }
-                }, 200);
+                }, 300);
               }}
               className={`px-4 py-2 rounded-md font-medium ${isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
             >
