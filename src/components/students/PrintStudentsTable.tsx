@@ -98,8 +98,15 @@ export function PrintStudentsTable({
           </div>
         </div>
         
-        {/* محتوى الطباعة */}
-        <div className="p-6">
+        {/* محتوى الطباعة */}        <div className="p-6">
+          <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded-lg no-print">
+            <h4 className="font-bold mb-1">نصائح للطباعة:</h4>
+            <ul className="list-disc list-inside text-sm">
+              <li>للحصول على نتائج أفضل، استخدم متصفح Chrome للطباعة</li>
+              <li>تأكد من تحديد خيار "طباعة الخلفيات" في إعدادات الطباعة</li>
+              <li>اضبط الهوامش على "بلا" للحصول على طباعة أكمل</li>
+            </ul>
+          </div>
           <div className="overflow-hidden">
             <div ref={printRef} className="print-container w-full bg-white text-black p-8">
               {/* العنوان والمعلومات */}

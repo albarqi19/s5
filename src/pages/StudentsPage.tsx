@@ -102,10 +102,10 @@ export function StudentsPage() {
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 إجمالي الطلاب: {students.length}
               </p>
-            </div>            <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
-              <button
+            </div>            <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">              <button
                 onClick={() => setShowPrintModal(true)}
                 className="px-6 py-3 text-white bg-gray-600 rounded-lg shadow-lg hover:bg-gray-700 transform hover:scale-105 transition-all duration-300 flex items-center"
+                title="طباعة قائمة الطلاب بترتيب النقاط"
               >
                 <Printer className="h-5 w-5 ml-2" />
                 طباعة القائمة

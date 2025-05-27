@@ -1,0 +1,74 @@
+/* تنسيقات خاصة بمشكلة تداخل صفحات الطباعة */
+
+/* 1. قواعد عامة لتحسين الطباعة */
+@page {
+  size: A4 portrait;
+  margin: 15mm;
+}
+
+/* 2. تحسينات للطباعة متعددة الصفحات */
+@media print {
+  /* منع تقسيم العناصر بين الصفحات */
+  .print-container table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    page-break-inside: auto !important;
+  }
+  
+  /* تأكد من عدم انقسام الصف بين الصفحات */
+  .print-container tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+  
+  /* تكرار الرأس في كل صفحة */
+  .print-container thead {
+    display: table-header-group !important;
+  }
+  
+  /* تكرار التذييل في كل صفحة */
+  .print-container tfoot {
+    display: table-footer-group !important;
+  }
+  
+  /* التأكد من أن الحاويات تتسع لمحتواها */
+  .print-container {
+    position: static !important;
+    overflow: visible !important;
+    float: none !important;
+    height: auto !important;
+    page-break-before: always !important;
+  }
+  
+  /* تحسين الألوان في الطباعة */
+  .print-container * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* تنظيف أي تحديد يمكن أن يسبب مشاكل */
+  .print-container table td,
+  .print-container table th {
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  
+  /* إزالة العناصر غير المطلوبة في الطباعة */
+  .no-print, .no-print * {
+    display: none !important;
+  }
+  
+  /* تعديل هوامش الصفحة */
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  /* منع الخلفيات الداكنة التي قد تظهر في الطباعة */
+  body {
+    background-color: white !important;
+  }
+}
