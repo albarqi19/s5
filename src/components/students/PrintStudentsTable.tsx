@@ -26,14 +26,29 @@ export function PrintStudentsTable({
   const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
   
   // تاريخ اليوم
-  const today = new Date().toLocaleDateString('ar-SA');  // استخدام مكتبة useReactToPrint بشكل مباشر
-  const handlePrint = useReactToPrint({
+  const today = new Date().toLocaleDateString('ar-SA');  // استخدام مكتبة useReactToPrint بشكل مباشر  const handlePrint = useReactToPrint({
     documentTitle: 'قائمة-الطلاب-' + (levelFilter || 'جميع-الحلقات'),
     onAfterPrint: onClose,
     pageStyle: `
       @page {
         size: A4 portrait;
         margin: 10mm;
+      }
+      
+      @media print {
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+        }
+        
+        thead { display: table-header-group !important; }
+        tfoot { display: table-footer-group !important; }
+        tr { page-break-inside: avoid !important; }
+        
+        .print-container {
+          position: static !important;
+          overflow: visible !important;
+        }
       }
     `,
     // @ts-ignore - الخاصية content موجودة في المكتبة
@@ -90,7 +105,7 @@ export function PrintStudentsTable({
                 <div className="text-center py-10">
                   <p className="text-xl font-medium">لا توجد بيانات للطلاب</p>
                 </div>
-              ) : (                <table className="w-full border-collapse" style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid black' }}>
+              ) : (                <table className="w-full border-collapse print-table" style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid black' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid black', backgroundColor: '#f0f0f0' }}>
                       <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الترتيب</th>
@@ -103,7 +118,8 @@ export function PrintStudentsTable({
                     {sortedStudents.map((student, index) => (
                       <tr key={student.id} style={{ 
                         borderBottom: '1px solid black', 
-                        backgroundColor: index < 3 ? (index === 0 ? '#ffffc0' : index === 1 ? '#e6e6e6' : '#ffdab3') : 'transparent'
+                        backgroundColor: index < 3 ? (index === 0 ? '#ffffc0' : index === 1 ? '#e6e6e6' : '#ffdab3') : (index % 2 === 0 ? '#f9f9f9' : 'transparent'),
+                        pageBreakInside: 'avoid'
                       }}>
                         <td className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px' }}>
                           {index < 3 ? (
