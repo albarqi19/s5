@@ -26,28 +26,38 @@ export function PrintStudentsTable({
   const sortedStudents = [...students].sort((a, b) => (b.points || 0) - (a.points || 0));
   
   // تاريخ اليوم
-  const today = new Date().toLocaleDateString('ar-SA');  // استخدام مكتبة useReactToPrint بشكل مباشر  const handlePrint = useReactToPrint({
+  const today = new Date().toLocaleDateString('ar-SA');
+
+  // تحسين مكتبة الطباعة مع إعدادات إضافية لمنع التداخل
+  const handlePrint = useReactToPrint({
     documentTitle: 'قائمة-الطلاب-' + (levelFilter || 'جميع-الحلقات'),
     onAfterPrint: onClose,
     pageStyle: `
       @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 15mm;
       }
       
       @media print {
         html, body {
-          height: auto !important;
-          overflow: visible !important;
+          height: 100% !important;
+          overflow: hidden !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         
+        table { page-break-inside: auto !important; }
+        tr { page-break-inside: avoid !important; }
         thead { display: table-header-group !important; }
         tfoot { display: table-footer-group !important; }
-        tr { page-break-inside: avoid !important; }
         
+        /* إصلاح مشكلة القطع والتداخل */
         .print-container {
-          position: static !important;
+          position: relative !important;
           overflow: visible !important;
+          width: 100% !important;
+          height: auto !important;
+          page-break-before: always !important;
         }
       }
     `,
@@ -90,7 +100,8 @@ export function PrintStudentsTable({
         
         {/* محتوى الطباعة */}
         <div className="p-6">
-          <div className="overflow-hidden">            <div ref={printRef} className="print-container w-full bg-white text-black p-8">
+          <div className="overflow-hidden">
+            <div ref={printRef} className="print-container w-full bg-white text-black p-8">
               {/* العنوان والمعلومات */}
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold" style={{ marginBottom: '10px' }}>{title}</h1>
@@ -105,8 +116,13 @@ export function PrintStudentsTable({
                 <div className="text-center py-10">
                   <p className="text-xl font-medium">لا توجد بيانات للطلاب</p>
                 </div>
-              ) : (                <table className="w-full border-collapse print-table" style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid black' }}>
-                  <thead>
+              ) : (
+                <table className="w-full border-collapse print-table" style={{ 
+                  borderCollapse: 'collapse', 
+                  width: '100%', 
+                  border: '1px solid black',
+                }}>
+                  <thead style={{ display: 'table-header-group' }}>
                     <tr style={{ borderBottom: '2px solid black', backgroundColor: '#f0f0f0' }}>
                       <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>الترتيب</th>
                       <th className="py-3 px-4 text-right" style={{ border: '1px solid black', padding: '8px', fontWeight: 'bold' }}>اسم الطالب</th>
@@ -134,8 +150,18 @@ export function PrintStudentsTable({
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot style={{ display: 'table-footer-group' }}>
+                    <tr>
+                      <td colSpan={4} style={{ visibility: 'hidden', height: '1px' }}></td>
+                    </tr>
+                  </tfoot>
                 </table>
               )}
+              
+              {/* معلومات تذييل الصفحة - تظهر في كل صفحة */}
+              <div className="text-center mt-8" style={{ fontSize: '10px', color: '#666' }}>
+                <p> نافس  © {new Date().getFullYear()}</p>
+              </div>
             </div>
           </div>
         </div>

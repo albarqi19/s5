@@ -95,3 +95,36 @@
 .print-container tr:nth-child(even) {
   background-color: #f9f9f9;
 }
+
+/* قواعد إضافية لتحسين الطباعة ومنع التداخل */
+@media print {
+  /* قواعد خاصة للصفحات المتعددة */
+  .print-container table {
+    page-break-inside: auto !important;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  /* تجنب كسر الصفوف بين الصفحات */
+  .print-container tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+  
+  /* تكرار الرأس في كل صفحة */
+  .print-container thead {
+    display: table-header-group !important;
+  }
+  
+  /* تأكد من أن كل عنصر في الصفحات اللاحقة يظهر بشكل صحيح */
+  .print-container * {
+    overflow: visible !important;
+  }
+  
+  /* تأكيد على التباعد بين الصفوف لتجنب التداخل */
+  .print-container tr td {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    vertical-align: middle !important;
+  }
+}
